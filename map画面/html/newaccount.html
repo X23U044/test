@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新規登録 - 聖地巡礼NAVI</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/newaccount.css">
+</head>
+<body>
+
+    <!-- アプリ共通ヘッダー -->
+    <header class="app-header">
+        <button type="button" class="back-btn" onclick="goToLogin()" aria-label="ログイン画面に戻る">＜ 戻る</button>
+        <h1>新規登録</h1>
+    </header>
+
+    <main class="content">
+        <!-- 進捗表示 -->
+        <ol class="steps" aria-label="登録の流れ">
+            <li class="step active" aria-current="step"><span>1</span>入力</li>
+            <li class="step"><span>2</span>確認</li>
+            <li class="step"><span>3</span>完了</li>
+        </ol>
+
+        <form class="card" onsubmit="goToConfirm(); return false;" novalidate>
+            <div class="form-group">
+                <label for="nickname">ニックネーム<span class="required">必須</span></label>
+                <input type="text" id="nickname" placeholder="(例) せいち巡礼者" autocomplete="nickname" maxlength="20" aria-describedby="nickname-hint">
+                <p class="form-hint" id="nickname-hint">マイページなどアプリ内で表示されます（20文字以内）。</p>
+                <p class="error-text">ニックネームを20文字以内で入力してください。</p>
+            </div>
+
+            <div class="form-group">
+                <label for="email">メールアドレス<span class="required">必須</span></label>
+                <input type="email" id="email" placeholder="(例) seiti150@seiti.ac.jp" autocomplete="email">
+                <p class="error-text">正しいメールアドレスを入力してください。</p>
+            </div>
+
+            <div class="form-group">
+                <label for="password">パスワード<span class="required">必須</span></label>
+                <div class="password-wrap">
+                    <input type="password" id="password" placeholder="(例) seiti555" autocomplete="new-password" aria-describedby="password-hint">
+                    <button type="button" class="password-toggle" data-target="password" aria-pressed="false" aria-label="パスワードを表示">表示</button>
+                </div>
+                <p class="form-hint" id="password-hint">英数字8文字以上（記号は使えません）</p>
+                <p class="error-text">英数字8文字以上で入力してください。</p>
+            </div>
+
+            <!-- 登録確認画面へ進むボタン -->
+            <button type="submit" class="btn btn-primary">登録確認へ</button>
+        </form>
+    </main>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/newaccount.js"></script>
+</body>
+</html>

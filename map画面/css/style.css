@@ -1,0 +1,2181 @@
+@charset "UTF-8";
+
+/* =====================================
+   共通
+===================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+
+    width: 100%;
+    height: 100%;
+
+    font-family:
+        "Helvetica Neue",
+        Arial,
+        sans-serif;
+
+    overflow: hidden;
+
+    background: #fff;
+
+}
+
+/* =====================================
+   地図
+===================================== */
+
+#map {
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    width: 100%;
+    height: 100%;
+
+    z-index: 1;
+
+}
+
+/* =====================================
+   共通ボタン
+===================================== */
+
+button {
+
+    border: none;
+
+    cursor: pointer;
+
+    transition: .2s;
+
+    font-size: 16px;
+
+}
+
+button:hover {
+
+    transform: scale(1.03);
+
+}
+
+button:active {
+
+    transform: scale(.96);
+
+}
+
+/* =====================================
+   ハンバーガー
+===================================== */
+
+#hamburger-btn {
+
+    position: absolute;
+
+    top: 18px;
+    left: 18px;
+
+    width: 46px;
+    height: 46px;
+
+    background: white;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 5px;
+
+    box-shadow:
+
+        0 3px 10px rgba(0, 0, 0, .25);
+
+    z-index: 200;
+
+}
+
+#hamburger-btn span {
+
+    width: 22px;
+    height: 3px;
+
+    background: #0b3c5d;
+
+    border-radius: 2px;
+
+}
+
+/* =====================================
+   検索バー
+===================================== */
+
+#search-container {
+
+    position: absolute;
+
+    top: 15px;
+    left: 75px;
+    right: 75px;
+
+    z-index: 200;
+
+}
+
+#search-box {
+
+    width: 100%;
+
+    height: 46px;
+
+    border: none;
+
+    border-radius: 25px;
+
+    padding-left: 18px;
+
+    font-size: 16px;
+
+    background: white;
+
+    box-shadow:
+
+        0 3px 10px rgba(0, 0, 0, .22);
+
+}
+
+#search-box:focus {
+
+    outline: none;
+
+}
+
+/* =====================================
+   マイページ
+===================================== */
+
+#profile-btn {
+
+    position: absolute;
+
+    top: 18px;
+    right: 18px;
+
+    width: 46px;
+    height: 46px;
+
+    border-radius: 50%;
+
+    background: white;
+
+    box-shadow:
+
+        0 3px 10px rgba(0, 0, 0, .25);
+
+    z-index: 200;
+
+}
+
+/* =====================================
+   アニメ絞り込み
+===================================== */
+
+#filter-btn {
+
+    position: absolute;
+
+    top: 80px;
+    left: 75px;
+
+    height: 40px;
+
+    padding:
+
+        0 18px;
+
+    background: white;
+
+    border-radius: 20px;
+
+    box-shadow:
+
+        0 3px 10px rgba(0, 0, 0, .2);
+
+    z-index: 150;
+
+}
+
+/* =====================================
+   現在地
+===================================== */
+
+#location-btn {
+
+    position: absolute;
+
+    right: 18px;
+
+    bottom: 145px;
+
+    width: 48px;
+    height: 48px;
+
+    border-radius: 50%;
+
+    background: white;
+
+    box-shadow:
+
+        0 3px 10px rgba(0, 0, 0, .25);
+
+    z-index: 200;
+
+}
+
+/* =====================================
+   2D・3D切替ボタン
+===================================== */
+
+#toggle-view-btn {
+
+    position: absolute;
+
+    right: 18px;
+
+    bottom: 85px;
+
+    width: 140px;
+
+    height: 45px;
+
+    background: #2e7d32;
+
+    color: white;
+
+    font-size: 16px;
+
+    font-weight: bold;
+
+    border: none;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 3px 10px rgba(0, 0, 0, .3);
+
+    transition: 0.3s;
+
+    z-index: 200;
+
+}
+
+/* 3D表示中 */
+
+#toggle-view-btn.mode3d {
+
+    background: #1976d2;
+
+}
+
+
+/* =====================================
+   左サイドメニュー
+===================================== */
+
+#side-menu {
+
+    position: absolute;
+
+    top: 0;
+    left: -280px;
+
+    width: 260px;
+    height: 100%;
+
+    background: #8fd0ef;
+
+    box-shadow: 3px 0 15px rgba(0, 0, 0, .3);
+
+    transition: left .35s ease;
+
+    z-index: 300;
+
+    padding-top: 20px;
+
+}
+
+#side-menu.open {
+
+    left: 0;
+
+}
+
+#close-menu {
+
+    position: absolute;
+
+    top: 15px;
+    right: 15px;
+
+    width: 40px;
+    height: 40px;
+
+    background: none;
+
+    border: none;
+
+    font-size: 24px;
+
+    box-shadow: none;
+
+}
+
+#side-menu h2 {
+
+    text-align: center;
+
+    margin-top: 20px;
+
+    margin-bottom: 40px;
+
+    color: #083d63;
+
+}
+
+#side-menu ul {
+
+    list-style: none;
+
+    padding: 0;
+
+}
+
+#side-menu li {
+
+    padding: 18px 30px;
+
+    font-size: 18px;
+
+    color: #083d63;
+
+    cursor: pointer;
+
+    transition: .2s;
+
+}
+
+#side-menu li:hover {
+
+    background: rgba(255, 255, 255, .4);
+
+    padding-left: 40px;
+
+}
+
+/* =====================================
+   スクロールバー
+===================================== */
+
+::-webkit-scrollbar {
+
+    width: 8px;
+
+}
+
+::-webkit-scrollbar-thumb {
+
+    background: #bbbbbb;
+
+    border-radius: 10px;
+
+}
+
+/* =====================================
+   スマホ対応
+===================================== */
+
+@media (max-width:768px) {
+
+    #search-container {
+
+        right: 70px;
+
+    }
+
+    #filter-btn {
+
+        font-size: 14px;
+
+        padding: 0 14px;
+
+    }
+
+    
+
+}
+
+/* Mapboxの右上ボタン（拡大縮小）を少し下にずらす */
+.mapboxgl-ctrl-top-right {
+    top: 70px !important;
+    /* マイページアイコンの高さに合わせて数値を調整してください */
+    right: 10px !important;
+}
+
+/* =====================================
+   アニメ絞り込み
+===================================== */
+
+#filter-modal {
+
+    display: none;
+
+    position: fixed;
+
+    bottom: 0;
+
+    left: 0;
+
+    width: 100%;
+
+    height: 70%;
+
+    background: #ffffff;
+
+    border-radius: 20px 20px 0 0;
+
+    padding: 20px;
+
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, .2);
+
+    z-index: 9999;
+
+    overflow-y: auto;
+
+}
+
+.filter-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin-bottom: 15px;
+
+}
+
+.filter-header h2 {
+
+    font-size: 22px;
+
+}
+
+.filter-header button {
+
+    border: none;
+
+    background: none;
+
+    font-size: 28px;
+
+    cursor: pointer;
+
+}
+
+#anime-search {
+
+    width: 100%;
+
+    height: 45px;
+
+    padding: 10px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 8px;
+
+    margin-bottom: 15px;
+
+    font-size: 16px;
+
+}
+
+#anime-list {
+
+    max-height: 300px;
+
+    overflow-y: auto;
+
+    margin-bottom: 20px;
+
+}
+
+#anime-list label {
+
+    display: block;
+
+    padding: 10px;
+
+    border-bottom: 1px solid #eee;
+
+    cursor: pointer;
+
+}
+
+#anime-list input {
+
+    margin-right: 10px;
+
+}
+
+/* =====================================
+   絞り込み画面のボタン（リセット＆決定）
+===================================== */
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    /* ボタン同士の隙間 */
+    width: 100%;
+}
+
+#filter-reset {
+    flex: 1;
+    /* 幅の比率（リセットを少し小さめに） */
+    height: 50px;
+    border: none;
+    border-radius: 8px;
+    background: #7f8c8d;
+    /* グレー色で控えめに */
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#filter-ok {
+    flex: 2;
+    /* 幅の比率（決定ボタンを目立たせる） */
+    height: 50px;
+    border: none;
+    border-radius: 8px;
+    background: #0b3c5d;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* =========================================================
+   スポット詳細パネル（下部ハーフシート）
+========================================================= */
+#spot-detail-panel {
+    position: absolute;
+    bottom: -300px;
+    /* 最初は画面の下に完全に隠しておく */
+    left: 0;
+    right: 0;
+    height: 260px;
+    background: #ffffff;
+    border-radius: 24px 24px 0 0;
+    /* 上側だけ丸みをつける */
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
+    z-index: 15;
+    /* メニュー(z-index:10)よりも前面に配置 */
+    transition: bottom 0.3s ease;
+    /* スッと競り上がるアニメーション */
+    padding: 15px 20px;
+}
+
+/* パネルが開いている時の状態 */
+#spot-detail-panel.show {
+    bottom: 0;
+    /* 画面下ぴったりに表示 */
+}
+
+/* パネル上部のつまみバー */
+.panel-handle {
+    width: 50px;
+    height: 5px;
+    background: #ccc;
+    border-radius: 3px;
+    margin: 0 auto 15px auto;
+    cursor: pointer;
+}
+
+.panel-content {
+    text-align: center;
+}
+
+#panel-spot-name {
+    margin: 0 0 10px 0;
+    color: #0b3c5d;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.panel-icon-area {
+    font-size: 40px;
+    margin-bottom: 20px;
+}
+
+/* ボタングループ（HP・X） */
+.panel-btn-group {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.panel-btn-group button {
+    flex: 1;
+    max-width: 140px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s;
+}
+
+.panel-btn-group button:hover {
+    opacity: 0.9;
+}
+
+/* HPボタン（濃い青） */
+.btn-hp {
+    background-color: #0d92eb;
+}
+
+/* Xボタン（黒または既存の青） */
+.btn-x {
+    background-color: #f30c0c;
+}
+
+/* =====================================
+   Mapbox 検索バーの見た目調整
+===================================== */
+.mapboxgl-ctrl-geocoder {
+    width: 100% !important;
+    max-width: 100% !important;
+    background-color: white !important;
+    border-radius: 25px !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .22) !important;
+}
+
+.mapboxgl-ctrl-geocoder--input {
+    height: 46px !important;
+    font-size: 16px !important;
+    padding-left: 40px !important;
+    /* 左の虫眼鏡アイコンと被らないように余白を作る */
+}
+
+/* 検索バーをクリックした時の点線（フォーカス枠）を消す */
+.mapboxgl-ctrl-geocoder--input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* 念のため、親要素（枠全体）の点線も無効化する */
+.mapboxgl-ctrl-geocoder:focus,
+.mapboxgl-ctrl-geocoder:focus-within {
+    outline: none !important;
+}
+
+/* =====================================
+   Mapbox検索バー位置補正
+===================================== */
+
+#search-container {
+
+    position: absolute;
+
+    top: 18px;
+
+    left: 75px;
+
+    right: 75px;
+
+    height: 46px;
+
+    z-index: 200;
+
+}
+
+.mapboxgl-ctrl-geocoder {
+
+    margin: 0 !important;
+
+    width: 100% !important;
+
+    max-width: none !important;
+
+    min-width: 0 !important;
+
+    height: 46px;
+
+}
+
+.mapboxgl-ctrl-geocoder--input {
+
+    height: 46px !important;
+
+}
+
+/* =====================================
+   検索バーの虫眼鏡位置調整
+===================================== */
+
+.mapboxgl-ctrl-geocoder--icon-search {
+
+    top: 13px !important;
+
+    left: 14px !important;
+
+    width: 20px;
+
+    height: 20px;
+
+}
+
+/* =====================================
+   スポットポップアップ
+===================================== */
+
+.popup-card {
+
+    width: 100%;
+
+    max-width: 260px;
+
+    box-sizing: border-box;
+
+}
+
+.popup-title {
+
+    display: inline-block;
+
+    color: white;
+
+    padding: 6px 14px;
+
+    border-radius: 20px;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    margin-bottom: 12px;
+
+    max-width: 100%;
+
+    word-break: break-word;
+
+}
+
+.popup-spot {
+
+    margin: 10px 0;
+
+    font-size: 22px;
+
+    color: #222;
+
+}
+
+.popup-section {
+
+    margin-top: 10px;
+
+}
+
+.popup-section strong {
+
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #0b3c5d;
+
+}
+
+.popup-section p {
+
+    line-height: 1.8;
+
+    font-size: 15px;
+
+    word-break: break-word;
+
+    overflow-wrap: anywhere;
+
+}
+
+.popup-image {
+
+    margin-top: 15px;
+
+}
+
+.popup-image img {
+
+    width: 100%;
+
+    height: 180px;
+
+    object-fit: cover;
+
+    border-radius: 10px;
+
+    background: #eeeeee;
+
+}
+
+.popup-buttons {
+
+    display: flex;
+
+    gap: 10px;
+
+    margin-top: 18px;
+
+}
+
+.popup-home {
+
+    width: 50px;
+
+    height: 50px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    background: #0d92eb;
+
+    color: white;
+
+    border-radius: 50%;
+
+    text-decoration: none;
+
+    font-size: 22px;
+
+}
+
+.popup-buttons button {
+
+    flex: 1;
+
+    border: none;
+
+    background: #0d92eb;
+
+    color: white;
+
+    border-radius: 10px;
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+}
+
+/* =====================================
+   Mapboxポップアップ
+===================================== */
+
+.mapboxgl-popup {
+
+    max-width: 300px !important;
+
+}
+
+.mapboxgl-popup-content {
+
+    padding: 15px;
+
+    border-radius: 15px;
+
+    overflow: hidden;
+
+    box-sizing: border-box;
+
+}
+
+/* =====================================
+   Mapbox ポップアップの閉じるボタン
+===================================== */
+
+.mapboxgl-popup-close-button {
+
+    font-size: 28px;
+
+    width: 36px;
+
+    height: 36px;
+
+    line-height: 36px;
+
+    color: #333;
+
+    font-weight: bold;
+
+    right: 6px;
+
+    top: 4px;
+
+}
+
+.mapboxgl-popup-close-button:hover {
+
+    background: none;
+
+    color: #000;
+
+}
+
+/* =====================================
+   検索候補を最前面に表示
+===================================== */
+
+.mapboxgl-ctrl-geocoder {
+
+    z-index: 1000 !important;
+
+}
+
+.mapboxgl-ctrl-geocoder .suggestions {
+
+    z-index: 1001 !important;
+
+}
+
+/* =====================================
+   経路案内パネル
+===================================== */
+#routePanel {
+    position: absolute;
+    top: 80px;
+    right: 15px;
+    width: 280px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    z-index: 250;
+    max-height: 50vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.route-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.route-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #0b3c5d;
+}
+
+#clear-route {
+    background: #e74c3c;
+    color: white;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+#routeList {
+    overflow-y: auto;
+    flex-grow: 1;
+    margin-bottom: 15px;
+}
+
+.routeItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed #dcdde1;
+    font-size: 14px;
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.routeItem button {
+    background: #7f8c8d;
+    color: white;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    padding: 0;
+}
+
+#open-google-route {
+    width: 100%;
+    padding: 14px;
+    background: #2ecc71;
+    color: white;
+    border-radius: 8px;
+    font-weight: bold;
+}
+/* スタンプ獲得ボタン */
+.stamp-button {
+    display: block;
+
+    width: 100%;
+    min-height: 42px;
+
+    box-sizing: border-box;
+
+    margin-bottom: 10px;
+    padding: 9px 12px;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: #f59e0b;
+    color: #ffffff;
+
+    font-size: 15px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+/* 押せない場合 */
+.stamp-button:disabled {
+    background: #cbd5e1;
+    color: #475569;
+
+    cursor: not-allowed;
+}
+
+/* =========================================================
+   UI改善（ここから下で上の指定を上書きしている）
+========================================================= */
+
+html,
+body {
+    font-family:
+        "Helvetica Neue",
+        Arial,
+        "Hiragino Kaku Gothic ProN",
+        "Hiragino Sans",
+        "Noto Sans JP",
+        Meiryo,
+        sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* キーボード操作時のフォーカス枠 */
+:focus-visible {
+    outline: 3px solid rgba(11, 60, 93, .5);
+    outline-offset: 2px;
+}
+
+/* ---------- 地図上の丸ボタン ---------- */
+#hamburger-btn {
+    padding: 0;
+}
+
+#profile-btn,
+#location-btn {
+    font-size: 22px;
+}
+
+#filter-btn {
+    color: #0b3c5d;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+/* 2D・3D切り替え：他のボタンと同じ白基調、3D中は紺で強調 */
+#toggle-view-btn {
+    width: auto;
+    min-width: 48px;
+    height: 48px;
+    padding: 0 16px;
+    background: white;
+    color: #0b3c5d;
+    font-size: 15px;
+    border-radius: 24px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .25);
+}
+
+#toggle-view-btn.mode3d {
+    background: #0b3c5d;
+    color: white;
+}
+
+/* ---------- サイドメニュー ---------- */
+#side-menu {
+    left: -300px;
+    width: 280px;
+    max-width: 85vw;
+    padding-top: 0;
+    background: #ffffff;
+    box-shadow: 3px 0 20px rgba(0, 0, 0, .25);
+    transition: left .3s ease;
+    overflow-y: auto;
+}
+
+#side-menu.open {
+    left: 0;
+}
+
+.side-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 8px 0 20px;
+    background: #0b3c5d;
+    color: white;
+}
+
+.side-menu-logo {
+    font-size: 17px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+#close-menu {
+    position: static;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    color: white;
+    font-size: 20px;
+}
+
+#close-menu:hover {
+    background: rgba(255, 255, 255, .15);
+    transform: none;
+}
+
+#side-menu ul {
+    padding: 8px 0;
+}
+
+#side-menu li,
+#side-menu li:hover {
+    padding: 0;
+    background: none;
+}
+
+#side-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #2c3e50;
+    text-decoration: none;
+    transition: background .2s;
+}
+
+#side-menu li a span {
+    width: 24px;
+    text-align: center;
+    font-size: 18px;
+}
+
+#side-menu li a:hover {
+    background: #e6f0f6;
+    color: #0b3c5d;
+}
+
+/* ---------- メニュー・絞り込み表示中の背景 ---------- */
+#menu-backdrop,
+#filter-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .35);
+}
+
+#menu-backdrop {
+    z-index: 290;
+}
+
+#filter-backdrop {
+    z-index: 9998;
+}
+
+#side-menu.open + #menu-backdrop,
+#filter-modal[style*="block"] + #filter-backdrop {
+    display: block;
+}
+
+/* ---------- アニメ絞り込み（下から出るシート） ---------- */
+#filter-modal {
+    left: 50%;
+    max-width: 640px;
+    transform: translateX(-50%);
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+}
+
+.filter-header h2 {
+    color: #0b3c5d;
+}
+
+.filter-header button {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 22px;
+}
+
+.filter-header button:hover {
+    background: #f0f2f4;
+    transform: none;
+}
+
+#anime-search {
+    padding-left: 16px;
+    border: 1px solid #dcdde1;
+    border-radius: 22px;
+}
+
+#anime-search:focus {
+    outline: none;
+    border-color: #0b3c5d;
+    box-shadow: 0 0 0 3px rgba(11, 60, 93, .2);
+}
+
+#anime-list label {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 10px;
+    border-radius: 6px;
+}
+
+#anime-list label:hover {
+    background: #f6f8f9;
+}
+
+#anime-list input {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+    accent-color: #0b3c5d;
+}
+
+/* 動きを減らす設定のユーザー向け */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+
+/* =========================================================
+   ピン・ポップアップの見た目改善（CSSのみ）
+   ※ JS側でstyle属性を直接指定している箇所は !important で上書きしている
+========================================================= */
+
+/* ---------- スポットのピン ---------- */
+.mapboxgl-marker[data-spot-id] {
+    cursor: pointer;
+}
+
+.mapboxgl-marker[data-spot-id] svg {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .3));
+    transition: filter .2s;
+}
+
+.mapboxgl-marker[data-spot-id]:hover svg {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .4)) brightness(1.08);
+}
+
+/* スタンプ取得済みのピンに ✓ バッジを付ける */
+.mapboxgl-marker.stamp-completed-marker::after {
+    content: "✓";
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid white;
+    background: #f59e0b;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+    pointer-events: none;
+}
+
+/* ---------- ズームアウト時のまとめピン（件数表示） ---------- */
+/* ※ 現在地の点（.mapboxgl-user-location）と誤差の円（-accuracy-circle）は対象外 */
+.mapboxgl-marker:not([data-spot-id]):not(.mapboxgl-user-location):not(.mapboxgl-user-location-accuracy-circle):not(:has(svg)) {
+    width: 34px !important;
+    height: 34px !important;
+    background-color: #0b3c5d !important;
+    border: 3px solid white !important;
+    box-shadow: 0 0 0 4px rgba(11, 60, 93, .25), 0 3px 8px rgba(0, 0, 0, .3);
+    font-size: 14px;
+}
+
+/* ---------- ポップアップ共通 ---------- */
+.mapboxgl-popup {
+    max-width: min(300px, calc(100vw - 32px)) !important;
+}
+
+.mapboxgl-popup-content {
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .22);
+    font-family: inherit;
+}
+
+/* まとめピンを押したときの一覧ポップアップ */
+.mapboxgl-popup-content:not(:has(.popup-card)) {
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1.9;
+    color: #2c3e50;
+}
+
+/* ---------- スポット詳細ポップアップ ---------- */
+.mapboxgl-popup-content:has(.popup-card) {
+    padding: 0;
+    /* 画面からはみ出しにくいよう高さを抑え、超えた分は中でスクロール */
+    max-height: min(500px, 65vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* 並び順を変更：画像を一番上に大きく表示する */
+.popup-card {
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+    padding: 0 16px 16px;
+}
+
+.popup-image {
+    order: -1;
+    margin: 0 -16px 14px;
+}
+
+.popup-image img {
+    display: block;
+    height: 110px;
+    border-radius: 0;
+}
+
+.popup-title {
+    align-self: flex-start;
+    margin-bottom: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    letter-spacing: .5px;
+}
+
+.popup-spot {
+    margin: 0 0 10px;
+    font-size: 19px;
+    line-height: 1.4;
+    color: #0b3c5d;
+    word-break: break-word;
+}
+
+.popup-section {
+    margin-top: 0;
+    padding: 10px 12px;
+    background: #f4f7f6;
+    border-radius: 10px;
+}
+
+.popup-section strong {
+    margin-bottom: 2px;
+    font-size: 12px;
+    color: #6b7b8c;
+}
+
+/* 長い説明は3行まで表示し、残りは枠内でスクロール */
+.popup-section p {
+    max-height: 5.1em;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #2c3e50;
+}
+
+/* 閉じるボタン：画像の上でも見えるよう白い丸に */
+.mapboxgl-popup-content:has(.popup-card) .mapboxgl-popup-close-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .92);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+    font-size: 22px;
+    line-height: 30px;
+    color: #2c3e50;
+}
+
+.mapboxgl-popup-content:has(.popup-card) .mapboxgl-popup-close-button:hover {
+    background: white;
+    transform: none;
+}
+
+/* ---------- スタンプ取得エリア ---------- */
+.stamp-popup-area {
+    margin-top: 14px !important;
+    padding-top: 12px;
+    border-top: 1px dashed #dcdde1;
+}
+
+.stamp-distance-message {
+    margin: 0 0 8px !important;
+    font-size: 12px !important;
+    color: #6b7b8c !important;
+}
+
+.stamp-distance-message::before {
+    content: "📍 ";
+}
+
+.popup-card .stamp-button {
+    min-height: 48px !important;
+    margin-bottom: 0;
+    border-radius: 10px !important;
+    background: #f59e0b !important;
+    box-shadow: 0 3px 8px rgba(245, 158, 11, .35);
+    font-size: 15px !important;
+}
+
+.popup-card .stamp-button:disabled {
+    background: #eef1f3 !important;
+    color: #6b7b8c !important;
+    box-shadow: none;
+    opacity: 1 !important;
+}
+
+.popup-card .stamp-button:disabled:hover,
+.popup-card .stamp-button:disabled:active {
+    transform: none;
+}
+
+/* ---------- 公式サイト・ルート追加ボタン ---------- */
+.popup-buttons {
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.popup-home {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    background: white;
+    border: 2px solid #dcdde1;
+    font-size: 20px;
+    transition: border-color .2s, background .2s;
+}
+
+.popup-home:hover {
+    border-color: #0b3c5d;
+    background: #e6f0f6;
+}
+
+.popup-buttons button {
+    min-height: 48px;
+    background: #0b3c5d;
+    font-size: 15px;
+    box-shadow: 0 3px 8px rgba(11, 60, 93, .25);
+}
+
+.popup-buttons button:hover {
+    background: #14537f;
+    transform: none;
+}
+
+/* ---------- ルート案内パネル ---------- */
+#routePanel {
+    width: min(280px, calc(100vw - 30px));
+    border-radius: 16px;
+}
+
+.routeItem button {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin-left: 8px;
+}
+
+
+/* =========================================================
+   通知メッセージ（トースト）
+========================================================= */
+#toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    z-index: 10000;
+    max-width: calc(100vw - 32px);
+    padding: 12px 20px;
+    border-radius: 24px;
+    background: rgba(11, 60, 93, .95);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1.5;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+    opacity: 0;
+    transform: translate(-50%, 16px);
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+}
+
+#toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+#toast.toast-error {
+    background: rgba(192, 57, 43, .95);
+}
+
+/* =========================================================
+   ルート案内パネル
+========================================================= */
+.route-empty {
+    padding: 12px 0;
+    font-size: 13px;
+    color: #6b7b8c;
+    text-align: center;
+}
+
+#open-google-route:hover {
+    background: #27ae60;
+    transform: none;
+}
+
+/* スマホ幅では「アニメで絞り込み」ボタンと右側のズームボタンに重ならない位置に置く */
+@media (max-width: 600px) {
+    #routePanel {
+        top: 132px;
+        left: 16px;
+        right: 64px;
+        width: auto;
+        max-height: calc(100vh - 340px); /* 現在地・3Dボタンと重ならない高さ */
+    }
+}
+
+/* =========================================================
+   スポット画像が読み込めない時の表示
+========================================================= */
+.popup-image.no-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 72px;
+    background: linear-gradient(135deg, #e6f0f6, #f4f7f6);
+    color: #6b7b8c;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.popup-image.no-image img {
+    display: none;
+}
+
+.popup-image.no-image::after {
+    content: "⛩️ 画像はまだありません";
+}
+
+
+/* =========================================================
+   現在地の3Dキャラクター
+   キャラクター表示中は、足元に重なってモデルが見にくくなるため、
+   青い現在地の点と誤差の範囲を示す円を隠す
+========================================================= */
+#map.walker-active .mapboxgl-user-location-dot,
+#map.walker-active .mapboxgl-user-location-heading,
+#map.walker-active .mapboxgl-user-location-accuracy-circle {
+    display: none;
+}
+
+
+/* =========================================================
+   3Dキャラクターの動作テスト用パネル（map.html?walktest の時だけ表示）
+========================================================= */
+#walk-test-panel {
+    position: fixed;
+    left: 16px;
+    bottom: 40px;
+    z-index: 300;
+    max-width: calc(100vw - 110px);
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .95);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
+    font-size: 13px;
+    color: #2c3e50;
+}
+
+#walk-test-panel strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #0b3c5d;
+}
+
+#walk-test-panel ul {
+    margin: 0 0 8px;
+    padding-left: 18px;
+    line-height: 1.8;
+}
+
+#walk-test-panel kbd {
+    display: inline-block;
+    min-width: 20px;
+    margin-right: 2px;
+    padding: 0 4px;
+    border: 1px solid #c9d1d8;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #f6f8f9;
+    font-family: inherit;
+    font-size: 12px;
+    text-align: center;
+}
+
+#walk-test-panel button {
+    width: 100%;
+    height: 36px;
+    border-radius: 8px;
+    background: #0b3c5d;
+    color: white;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+#walk-test-panel button[hidden] {
+    display: none;
+}
+
+
+/* =========================================================
+   地図画面の改善（アイコン・配色・配置）
+   色の役割：紺＝基本、オレンジ＝目立たせたい操作、赤＝削除
+========================================================= */
+
+/* ---------- 線のアイコン（絵文字の代わり。どの端末でも同じ見た目） ---------- */
+.icon {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+}
+
+#profile-btn,
+#location-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0b3c5d;
+}
+
+#profile-btn .icon,
+#location-btn .icon {
+    width: 24px;
+    height: 24px;
+}
+
+#side-menu li a .icon {
+    width: 22px;
+    height: 22px;
+    color: #0b3c5d;
+}
+
+/* ---------- 現在地ボタンは右下の1つにまとめる（Mapbox標準の◎は隠す） ---------- */
+.mapboxgl-ctrl-group:has(> .mapboxgl-ctrl-geolocate) {
+    display: none !important;
+}
+
+/* ---------- 2D｜3D の切り替えスイッチ（今の状態が紺色になる） ---------- */
+#toggle-view-btn,
+#toggle-view-btn.mode3d {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: auto;
+    min-width: 0;
+    height: 48px;
+    padding: 4px;
+    background: white;
+    color: #0b3c5d;
+    border-radius: 24px;
+}
+
+#toggle-view-btn .seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 40px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: bold;
+    transition: background .2s, color .2s;
+}
+
+#toggle-view-btn:not(.mode3d) .seg-2d,
+#toggle-view-btn.mode3d .seg-3d {
+    background: #0b3c5d;
+    color: white;
+}
+
+/* ---------- 絞り込みボタンと、絞り込み中の作品の札 ---------- */
+#filter-bar {
+    position: absolute;
+    top: 80px;
+    left: 75px;
+    right: 75px;
+    z-index: 150;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 2px 8px;
+    pointer-events: none;
+}
+
+/* 札の並びの隙間では地図を操作できるようにする */
+#filter-bar > * {
+    pointer-events: auto;
+}
+
+#filter-btn {
+    position: static;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#filter-btn .icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* 絞り込み中はボタンを紺色に */
+#filter-btn.is-active {
+    background: #0b3c5d;
+    color: white;
+}
+
+#filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#filter-chips:empty {
+    display: none;
+}
+
+.filter-chip {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 6px 0 12px;
+    border-radius: 18px;
+    background: white;
+    color: #2c3e50;
+    font-size: 13px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+}
+
+.filter-chip:hover {
+    transform: none;
+    background: #f6f8f9;
+}
+
+.chip-x {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #eef1f3;
+    color: #6b7b8c;
+    font-size: 15px;
+}
+
+/* ピンの色を示す丸（凡例） */
+.color-dot {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px white, 0 0 0 3px rgba(0, 0, 0, .12);
+}
+
+/* 絞り込み画面の作品一覧：チェック・色・作品名・件数 */
+.filter-note {
+    margin: -6px 0 8px;
+    font-size: 12px;
+    color: #6b7b8c;
+}
+
+#anime-list label {
+    gap: 10px;
+}
+
+#anime-list input {
+    margin-right: 0;
+}
+
+#anime-list .anime-name {
+    flex: 1;
+}
+
+#anime-list .anime-count {
+    font-size: 12px;
+    color: #6b7b8c;
+}
+
+/* ---------- ルート案内パネル ---------- */
+.route-header {
+    gap: 8px;
+}
+
+#route-toggle {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0;
+    background: none;
+    color: #0b3c5d;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: left;
+}
+
+#route-toggle:hover {
+    transform: none;
+}
+
+#route-toggle .icon {
+    width: 20px;
+    height: 20px;
+}
+
+.route-count {
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: 11px;
+    background: #f39c12;
+    color: white;
+    font-size: 12px;
+    text-align: center;
+}
+
+#route-toggle .chevron {
+    margin-left: auto;
+    transition: transform .2s;
+}
+
+#routePanel.collapsed #route-toggle .chevron {
+    transform: rotate(-90deg);
+}
+
+#route-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* 折りたたみ中は見出しだけにする */
+#routePanel.collapsed #route-body {
+    display: none;
+}
+
+#routePanel.collapsed .route-header {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+/* 削除は赤い文字の控えめなボタンに */
+#clear-route {
+    background: transparent;
+    border: 1px solid #f3c7c2;
+    color: #e74c3c;
+    box-shadow: none;
+}
+
+#clear-route:hover {
+    background: #fdf1f0;
+    transform: none;
+}
+
+/* 「Googleマップで案内」はメインの紺色に */
+#open-google-route {
+    background: #0b3c5d;
+}
+
+#open-google-route:hover {
+    background: #14537f;
+}
+
+/* ---------- ポップアップのアイコン ---------- */
+.popup-home {
+    color: #0b3c5d;
+}
+
+.popup-buttons button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.popup-buttons .icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* =========================================================
+   PC：検索バーは横に伸ばしすぎない
+========================================================= */
+@media (min-width: 768px) {
+    #search-container {
+        right: auto;
+        width: 480px;
+    }
+
+    /* ルート案内は右上のズームボタンの下に置く */
+    #routePanel {
+        top: 180px;
+        max-height: calc(100vh - 360px);
+    }
+
+    #filter-bar {
+        right: auto;
+        max-width: calc(100vw - 160px);
+    }
+}
+
+/* =========================================================
+   スマホ
+========================================================= */
+@media (max-width: 600px) {
+
+    /* 指で拡大・縮小できるので ＋／− は隠す（方角を戻すボタンは残す） */
+    .mapboxgl-ctrl-zoom-in,
+    .mapboxgl-ctrl-zoom-out {
+        display: none !important;
+    }
+
+    /* 2D｜3D は縦に並べて右側を細くし、ルート案内と重ならないようにする */
+    #toggle-view-btn,
+    #toggle-view-btn.mode3d {
+        flex-direction: column;
+        height: auto;
+        bottom: 30px;
+        border-radius: 24px;
+    }
+
+    #location-btn {
+        bottom: 132px;
+    }
+
+    /* 通知は画面上部（絞り込みの下）に出し、下のパネルを隠さないようにする */
+    #toast {
+        top: 136px;
+        bottom: auto;
+    }
+
+    /* ルート案内は画面下に置き、地図の上部を覆わないようにする */
+    #routePanel {
+        top: auto;
+        bottom: 16px;
+        left: 16px;
+        right: 80px;
+        width: auto;
+        max-height: 45vh;
+    }
+
+    /* ---------- スポット詳細：画面下からせり上がるパネル ---------- */
+    .mapboxgl-popup:has(.popup-card) {
+        position: fixed !important;
+        top: auto !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+        transform: none !important;
+        animation: sheet-up .25s ease;
+    }
+
+    /* Mapboxのロゴより手前に出す */
+    .mapboxgl-popup:has(.popup-card) {
+        z-index: 3;
+    }
+
+    .mapboxgl-popup:has(.popup-card) .mapboxgl-popup-tip {
+        display: none;
+    }
+
+    .mapboxgl-popup:has(.popup-card) .mapboxgl-popup-content {
+        max-height: 62vh;
+        border-radius: 20px 20px 0 0;
+        padding-bottom: env(safe-area-inset-bottom);
+        box-shadow: 0 -6px 24px rgba(0, 0, 0, .2);
+    }
+
+    /* パネル表示中は、下側のボタンやルート案内を隠す */
+    body:has(.mapboxgl-popup .popup-card) #location-btn,
+    body:has(.mapboxgl-popup .popup-card) #toggle-view-btn,
+    body:has(.mapboxgl-popup .popup-card) #routePanel,
+    body:has(.mapboxgl-popup .popup-card) #walk-test-panel {
+        display: none !important;
+    }
+}
+
+/* Mapbox が位置指定に transform を使うため、動きは translate で付ける */
+@keyframes sheet-up {
+    from { translate: 0 40px; opacity: 0; }
+    to { translate: 0 0; opacity: 1; }
+}
+
+
+/* ---------- ルートの並べ替え（つまみ・▲▼ボタン） ---------- */
+.routeItem {
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.route-handle {
+    flex-shrink: 0;
+    width: 24px;
+    padding: 6px 0;
+    font-size: 18px;
+    line-height: 1;
+    color: #95a5a6;
+    text-align: center;
+    cursor: grab;
+    touch-action: none;           /* つまみを触っている間は画面をスクロールさせない */
+    user-select: none;
+}
+
+.route-name {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.route-move {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: 2px;
+}
+
+.routeItem .route-move button {
+    width: 28px;
+    height: 18px;
+    margin: 0;
+    border-radius: 4px;
+    background: #e6f0f6;
+    color: #0b3c5d;
+    font-size: 10px;
+}
+
+.routeItem .route-move button:hover:not(:disabled) {
+    background: #cfe0ec;
+}
+
+.routeItem .route-move button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.routeItem .route-remove {
+    margin-left: 0;
+}
+
+/* ドラッグ中の項目 */
+.routeItem.dragging {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    opacity: 0.95;
+}
+
+.routeItem.dragging .route-handle {
+    cursor: grabbing;
+}
+
+
+.popup-buttons button:disabled {
+    background: #cbd5e1;
+    color: #64748b;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.popup-buttons button:disabled:hover {
+    background: #cbd5e1;
+    transform: none;
+}
