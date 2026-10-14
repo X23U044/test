@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スタンプ帳 - 聖地巡礼NAVI</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/stamp-rank.css">
+    <link rel="stylesheet" href="../css/stamp.css">
+</head>
+<body>
+
+    <!-- アプリ共通ヘッダー -->
+    <header class="app-header">
+        <button type="button" class="back-btn" onclick="goToMyPage()" aria-label="マイページに戻る">＜ 戻る</button>
+        <h1>スタンプ帳</h1>
+    </header>
+
+    <main class="content">
+
+        <!-- 全体の進み具合 -->
+        <section class="overall card">
+            <div class="overall-head">
+                <p class="overall-count"><strong id="got-count">0</strong> / <span id="total-count">0</span> 個</p>
+                <p class="overall-rest" id="rest-text"></p>
+            </div>
+            <div class="overall-bar" role="progressbar" aria-label="スタンプ帳の達成度" aria-valuemin="0" id="overall-bar">
+                <span id="overall-fill"></span>
+            </div>
+        </section>
+
+        <!-- 作品の絞り込み（押すと作品の一覧が開く）と「獲得済みだけ表示」 -->
+        <div class="toolbar">
+            <button type="button" class="title-picker-btn" id="title-picker-btn" onclick="openTitlePicker()" aria-haspopup="dialog">
+                <span class="picker-caption">作品</span>
+                <span class="color-dot" id="picker-dot" hidden></span>
+                <span class="picker-label" id="picker-label">すべての作品</span>
+                <span class="picker-count" id="picker-count"></span>
+                <span class="picker-caret" aria-hidden="true">▾</span>
+            </button>
+            <label class="only-earned">
+                <input type="checkbox" id="only-earned">
+                <span class="switch" aria-hidden="true"></span>
+                獲得済みだけ表示
+            </label>
+        </div>
+
+        <!-- スタンプ（作品ごと） -->
+        <div id="stamp-notice" hidden></div>
+        <div id="stamp-sections"></div>
+
+    </main>
+
+    <!-- =============== 作品の絞り込み =============== -->
+    <div id="title-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="title-modal-title">
+        <div class="modal-content title-picker">
+            <button type="button" class="modal-close-btn" onclick="closeTitlePicker()" aria-label="閉じる" data-modal-close>✕</button>
+            <h2 class="modal-title" id="title-modal-title">作品で絞り込む</h2>
+            <input type="search" class="title-search" id="title-search" placeholder="作品名で探す" autocomplete="off" aria-label="作品名で探す">
+            <ul class="title-options" id="title-options" aria-label="作品の一覧"></ul>
+        </div>
+    </div>
+
+    <!-- =============== スタンプ詳細のポップアップ =============== -->
+    <div id="stamp-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-content stamp-detail">
+            <button type="button" class="modal-close-btn" onclick="closeStampModal()" aria-label="閉じる" data-modal-close>✕</button>
+
+            <div class="stamp-big-circle" id="modal-circle" aria-hidden="true">⛩️</div>
+            <h2 id="modal-title" class="spot-title">〇〇神社</h2>
+            <div class="visit-badges">
+                <span id="modal-date" class="visit-date">訪問日：2026年05月15日</span>
+                <span id="modal-count" class="rank-pill" hidden>ブロンズ・獲得 1回</span>
+            </div>
+            <p id="modal-next" class="rank-next" hidden></p>
+
+            <dl class="info-group">
+                <dt class="info-label">作品名</dt>
+                <dd class="info-text" id="modal-anime">アニメ名</dd>
+
+                <dt class="info-label">シーン</dt>
+                <dd class="info-text" id="modal-scene">シーン</dd>
+            </dl>
+
+            <a href="map.html" class="btn btn-primary map-link" id="modal-map-link">地図で見る</a>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/stamp-rank.js"></script>
+    <script src="../js/stamp.js?v=6"></script>
+    <!-- 獲得したスタンプをDBから読み込んで表示する -->
+    <script type="module">
+        import { loadStampBook } from "../js/stamp-db.js?v=4";
+
+        loadStampBook().then(function (book) {
+            showStamps(book.stamps || [], book.stamps === null ? "guest" : "ready", book.summary);
+        }, function (error) {
+            console.error("スタンプの読み込みに失敗しました:", error);
+            showStamps([], "error");
+        });
+    </script>
+</body>
+</html>

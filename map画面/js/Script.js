@@ -1,0 +1,2400 @@
+// =========================================================
+// 1. Firebase の読み込みと設定
+// =========================================================
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+
+import {
+    getAnalytics
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js";
+
+import {
+    getFirestore,
+    collection,
+    getDocs
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+// 作品名と作品ごとの色（スタンプ帳・マイページと共通）
+import {
+    getTitleColor,
+    getTitleName
+} from "./title-colors.js";
+
+// stampsyori.js（スタンプ獲得の演出）からも同じ色を使う
+window.getTitleColor = getTitleColor;
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCga1yFbLWdLXmMrNwScXuOGUWnz283eYs",
+    authDomain: "sisukai-121cf.firebaseapp.com",
+    projectId: "sisukai-121cf",
+    storageBucket: "sisukai-121cf.firebasestorage.app",
+    messagingSenderId: "83286825212",
+    appId: "1:83286825212:web:1cd57aecfb2308571a5f79",
+    measurementId: "G-GKWJ6BE9M2"
+};
+
+const app = initializeApp(firebaseConfig);
+
+getAnalytics(app);
+
+const db = getFirestore(app);
+
+
+// =========================================================
+// 2. Mapbox の基本設定とUI状態
+// =========================================================
+mapboxgl.accessToken =
+    "pk.eyJ1Ijoia3Vyb211IiwiYSI6ImNtcDBqcGpjNjB3Y2EycnE2a3d6cGhmbG4ifQ.lQ-HQ1PQVvgpxSvj8J_9rA";
+
+let is3D = false;
+let spotMarkers = [];
+let spots = [];
+
+// stampsyori.jsからスポット一覧を参照できるようにする
+window.spots = spots;
+
+let currentSpots = [];
+let titleMap = {};
+let hoverPopup = null;
+
+// =========================================================
+// 作品ごとのピンの色
+// データの読み込み順で色が変わらないよう、作品ごとに色を固定する。
+// ここに無い作品は、作品名から決まる色（毎回同じ色）になる
+// =========================================================
+const titleColorMap = {};
+
+const map = new mapboxgl.Map({
+    container: "map",
+    style: "mapbox://styles/mapbox/standard",
+    center: [
+        139.7671,
+        35.6812
+    ],
+    zoom: 12,
+    pitch: 0,
+    bearing: 0,
+    minZoom: 6,
+    maxZoom: 18
+});
+
+
+// 初期状態（2D）はピッチ変更禁止
+map.touchPitch.disable();
+
+// PCの回転は有効
+map.dragRotate.enable();
+
+// スマホの2本指回転は有効
+map.touchZoomRotate.enableRotation();
+
+
+map.on("style.load", () => {
+    map.setConfigProperty(
+        "basemap",
+        "language",
+        "ja"
+    );
+});
+
+
+map.on("pitch", () => {
+    if (
+        !is3D &&
+        map.getPitch() !== 0
+    ) {
+        map.setPitch(0);
+    }
+});
+
+
+map.addControl(
+    new mapboxgl.NavigationControl(),
+    "top-right"
+);
+
+
+// =========================================================
+// 現在地コントロール
+// =========================================================
+const geolocate =
+    new mapboxgl.GeolocateControl({
+        positionOptions: {
+            enableHighAccuracy: true
+        },
+
+        trackUserLocation: true,
+        showUserHeading: true
+    });
+
+map.addControl(
+    geolocate,
+    "top-right"
+);
+
+// stampsyori.jsから現在地コントロールを参照できるようにする
+window.geolocate = geolocate;
+
+// =========================================================
+// 現在地に歩く3Dキャラクターを表示（walker.js）
+// 読み込みに失敗しても地図は使えるよう、別に読み込む
+// =========================================================
+import("./walker.js")
+    .then(function (walker) {
+        walker.initWalker(
+            map,
+            geolocate
+        );
+    })
+    .catch(function (error) {
+        console.warn(
+            "3Dキャラクターを表示できませんでした:",
+            error
+        );
+    });
+
+
+// =========================================================
+// あいまい検索用の文字変換
+// =========================================================
+function normalizeText(text) {
+    if (!text) {
+        return "";
+    }
+
+    return String(text)
+        .toLowerCase()
+
+        .replace(
+            /[Ａ-Ｚａ-ｚ０-９]/g,
+            function (character) {
+                return String.fromCharCode(
+                    character.charCodeAt(0) -
+                    0xFEE0
+                );
+            }
+        )
+
+        .replace(
+            /[\u30a1-\u30f6]/g,
+            function (character) {
+                return String.fromCharCode(
+                    character.charCodeAt(0) -
+                    0x60
+                );
+            }
+        )
+
+        .replace(
+            /[  ・！!？\?△○〇\-ー。、，,．.【】「」『』（）()〔〕［］\[\]“”"'’〜~：:]/g,
+            ""
+        );
+}
+
+// =========================================================
+// 作品の略称（検索欄に略称を入れても作品の聖地が出るように）
+// キー：略称、値：Firestore の title_name
+// =========================================================
+const TITLE_ALIASES = {
+    "ガルクラ": "ガールズバンドクライ",
+    "ユーフォ": "響け！ユーフォニアム",
+    "響け": "響け！ユーフォニアム",
+    "俺ガイル": "やはり俺の青春ラブコメはまちがっている。",
+    "はまち": "やはり俺の青春ラブコメはまちがっている。",
+    "かぐや姫": "超かぐや姫！",
+    "青ブタ": "青春ブタ野郎はバニーガール先輩の夢を見ない",
+    "ゆるキャン": "ゆるキャン△",
+    "冴えカノ": "冴えない彼女の育てかた",
+    "リコリコ": "リコリス・リコイル",
+    "推しの子": "【推しの子】",
+    "鬼滅": "鬼滅の刃"
+};
+
+// 入力が略称（またはその一部）なら、対応する作品名を返す
+function findAliasTitles(keyword) {
+    return Object.keys(TITLE_ALIASES)
+        .filter(function (alias) {
+            const normalizedAlias = normalizeText(alias);
+            return normalizedAlias.includes(keyword) || keyword.includes(normalizedAlias);
+        })
+        .map(function (alias) {
+            return normalizeText(TITLE_ALIASES[alias]);
+        });
+}
+
+
+// =========================================================
+// HTMLエスケープ
+// =========================================================
+function escapeHTML(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+// =========================================================
+// 3. データの取得
+// =========================================================
+// 作品名が無いスポットは「その他」として扱う
+// （色分け・絞り込みのリストと同じ名前にそろえる）
+
+
+async function loadData() {
+    const spotSnapshot =
+        await getDocs(
+            collection(
+                db,
+                "spot"
+            )
+        );
+
+    spots = [];
+
+    spotSnapshot.forEach(
+        function (docSnap) {
+            const data =
+                docSnap.data();
+
+            if (!data.coord) {
+                return;
+            }
+
+            const titleName =
+                data.title_name ||
+                "その他";
+
+            titleColorMap[
+                titleName
+            ] =
+                getTitleColor(
+                    titleName
+                );
+
+            spots.push({
+                id: docSnap.id,
+                ...data
+            });
+        }
+    );
+
+    currentSpots = spots;
+
+    saveSpotSummary();
+
+    // stampsyori.jsへ最新のスポット一覧を渡す
+    window.spots = spots;
+
+    if (
+        typeof window.refreshStampUI ===
+        "function"
+    ) {
+        window.refreshStampUI();
+    }
+
+    // 検索結果が0件だった場合だけ再検索
+    setTimeout(function () {
+
+        const input =
+            document.querySelector(
+                ".mapboxgl-ctrl-geocoder input"
+            );
+
+        if (
+            geocoderInstance &&
+            spots.length > 0 &&
+            lastResultCount === 0 &&
+            input &&
+            input.value.trim()
+        ) {
+            geocoderInstance.query(
+                input.value.trim()
+            );
+        }
+
+    }, 500);
+}
+
+
+// =========================================================
+// 作品ごとの聖地の件数と色を端末に記録する
+// （マイページの「作品ごとの達成度」で使う）
+// =========================================================
+function saveSpotSummary() {
+    const titles = {};
+
+    spots.forEach(
+        function (spot) {
+            const title =
+                getTitleName(spot);
+
+            if (!titles[title]) {
+                titles[title] = {
+                    count: 0,
+                    color: getTitleColor(title)
+                };
+            }
+            titles[title].count++;
+        }
+    );
+
+    try {
+        localStorage.setItem(
+            "seitiSpotSummary",
+            JSON.stringify({
+                updatedAt: Date.now(),
+                total: spots.length,
+                titles: titles,
+                // スタンプ画面で「まだ集めていない聖地」も並べるための一覧
+                spots: spots.map(
+                    function (spot) {
+                        return {
+                            id: spot.id,
+                            name: spot.spot_name || "無題のスポット",
+                            title: getTitleName(spot),
+                            info: spot.spot_info || ""
+                        };
+                    }
+                )
+            })
+        );
+    } catch (error) {
+        // 保存できない環境では何もしない
+    }
+}
+
+
+// =========================================================
+// map.html?spot=スポットID で開いた時は、その聖地へ移動して詳細を開く
+// （スタンプ画面の「地図で見る」から使う）。処理した時は true を返す
+// =========================================================
+function openSpotFromUrl() {
+    const spotId =
+        new URLSearchParams(
+            location.search
+        ).get("spot");
+
+    if (!spotId) {
+        return false;
+    }
+
+    const spot =
+        spots.find(
+            function (item) {
+                return String(item.id) === spotId;
+            }
+        );
+
+    if (!spot || !spot.coord) {
+        return false;
+    }
+
+    map.jumpTo({
+        center: [
+            Number(spot.coord.longitude),
+            Number(spot.coord.latitude)
+        ],
+        zoom: 16
+    });
+
+    // ピンが描き直された後に、そのスポットの詳細を開く
+    map.once(
+        "idle",
+        function () {
+            const target =
+                spotMarkers.find(
+                    function (marker) {
+                        return marker.getElement().dataset.spotId === spotId;
+                    }
+                );
+            if (target && target.getPopup() && !target.getPopup().isOpen()) {
+                target.togglePopup();
+            }
+        }
+    );
+
+    return true;
+}
+
+
+// =========================================================
+// ポップアップの「ルートに追加」ボタン
+// ルートに入っている間は「追加済み」にして押せなくする
+// =========================================================
+const ROUTE_ADD_ICON =
+    '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+
+const ROUTE_ADDED_ICON =
+    '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17L4 12"/></svg>';
+
+function getRouteButtonHTML(isInRoute) {
+    return isInRoute
+        ? ROUTE_ADDED_ICON + "追加済み"
+        : ROUTE_ADD_ICON + "ルートに追加";
+}
+
+function setRouteButtonState(button, isInRoute) {
+    button.disabled = isInRoute;
+    button.innerHTML = getRouteButtonHTML(isInRoute);
+}
+
+// 画面にある「ルートに追加」ボタンを、今のルートに合わせる
+function syncRouteButtons(root) {
+    (root || document)
+        .querySelectorAll(
+            '[id^="route-btn-"]'
+        )
+        .forEach(
+            function (button) {
+                const spotId =
+                    button.id.slice(
+                        "route-btn-".length
+                    );
+
+                setRouteButtonState(
+                    button,
+                    selectedSpots.some(
+                        function (item) {
+                            return String(item.id) === spotId;
+                        }
+                    )
+                );
+            }
+        );
+}
+
+
+// =========================================================
+// スポット詳細のポップアップ
+// スマホでは画面下からせり上がるパネルとして表示する（見た目は style.css）。
+// パネルにピンが隠れないよう、開いた時にピンを画面の上寄りへ動かす
+// =========================================================
+function createSpotPopup(html, longitude, latitude) {
+    const popup =
+        new mapboxgl.Popup({
+            offset: 25
+        }).setHTML(
+            html
+        );
+
+    popup.on(
+        "open",
+        function () {
+            // 閉じている間にルートが変わっていることがあるので合わせ直す
+            syncRouteButtons(
+                popup.getElement()
+            );
+
+            if (
+                window.matchMedia(
+                    "(max-width: 600px)"
+                ).matches
+            ) {
+                map.easeTo({
+                    center: [
+                        longitude,
+                        latitude
+                    ],
+                    offset: [
+                        0,
+                        -window.innerHeight * 0.25
+                    ],
+                    duration: 400
+                });
+            }
+        }
+    );
+
+    return popup;
+}
+
+
+// =========================================================
+// GeoHashでグループ化
+// =========================================================
+function groupSpotsByGeohash(list) {
+    const zoom =
+        map.getZoom();
+
+    let geohashLength;
+
+    if (zoom <= 7) {
+        geohashLength = 3;
+    } else {
+        geohashLength = 4;
+    }
+
+    const groups = {};
+
+    list.forEach(
+        function (data) {
+            if (!data.geo_hash) {
+                return;
+            }
+
+            const key =
+                data.geo_hash.substring(
+                    0,
+                    geohashLength
+                );
+
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+
+            groups[key].push(data);
+        }
+    );
+
+    return Object.values(groups);
+}
+
+
+// =========================================================
+// マーカー描画
+// =========================================================
+function drawMarkers(list) {
+    spotMarkers.forEach(
+        function (spotMarker) {
+            spotMarker.remove();
+        }
+    );
+
+    spotMarkers = [];
+
+    const zoom =
+        map.getZoom();
+
+
+    // =====================================================
+    // ズーム10以下はスポットをまとめて表示
+    // =====================================================
+    if (zoom <= 10) {
+        const groups =
+            groupSpotsByGeohash(list);
+
+        groups.forEach(
+            function (group) {
+                const data =
+                    group[0];
+
+                const longitude =
+                    Number(
+                        data.coord
+                            ?.longitude
+                    );
+
+                const latitude =
+                    Number(
+                        data.coord
+                            ?.latitude
+                    );
+
+                if (
+                    !Number.isFinite(
+                        longitude
+                    ) ||
+                    !Number.isFinite(
+                        latitude
+                    )
+                ) {
+                    return;
+                }
+
+                const element =
+                    document.createElement(
+                        "div"
+                    );
+
+                element.textContent =
+                    group.length;
+
+                element.style.width =
+                    "25px";
+
+                element.style.height =
+                    "25px";
+
+                element.style.borderRadius =
+                    "50%";
+
+                element.style.backgroundColor =
+                    "deepskyblue";
+
+                element.style.color =
+                    "white";
+
+                element.style.fontWeight =
+                    "bold";
+
+                element.style.display =
+                    "flex";
+
+                element.style.justifyContent =
+                    "center";
+
+                element.style.alignItems =
+                    "center";
+
+                element.style.border =
+                    "2px solid white";
+
+                element.style.cursor =
+                    "pointer";
+
+                const displaySpots =
+                    group.slice(
+                        0,
+                        3
+                    );
+
+                let hoverHTML =
+                    displaySpots
+                        .map(
+                            function (spot) {
+                                return escapeHTML(
+                                    spot.spot_name ||
+                                    "無題のスポット"
+                                );
+                            }
+                        )
+                        .join("<br>");
+
+                if (
+                    group.length > 3
+                ) {
+                    hoverHTML +=
+                        `<br>...あと${group.length - 3}件`;
+                }
+
+                const groupMarker =
+                    new mapboxgl.Marker(
+                        element
+                    )
+                        .setLngLat([
+                            longitude,
+                            latitude
+                        ])
+                        .addTo(map);
+
+                groupMarker
+                    .getElement()
+                    .addEventListener(
+                        "click",
+                        function () {
+                            if (
+                                hoverPopup
+                            ) {
+                                hoverPopup.remove();
+                            }
+
+                            hoverPopup =
+                                new mapboxgl.Popup({
+                                    closeButton: false,
+                                    closeOnClick: false,
+                                    offset: 15
+                                })
+                                    .setLngLat([
+                                        longitude,
+                                        latitude
+                                    ])
+                                    .setHTML(
+                                        hoverHTML
+                                    )
+                                    .addTo(map);
+                        }
+                    );
+
+                spotMarkers.push(
+                    groupMarker
+                );
+            }
+        );
+
+        return;
+    }
+
+
+    // =====================================================
+    // ズーム11以上は個別スポットを表示
+    // =====================================================
+    list.forEach(
+        function (data) {
+            const longitude =
+                Number(
+                    data.coord
+                        ?.longitude
+                );
+
+            const latitude =
+                Number(
+                    data.coord
+                        ?.latitude
+                );
+
+            if (
+                !Number.isFinite(
+                    longitude
+                ) ||
+                !Number.isFinite(
+                    latitude
+                )
+            ) {
+                return;
+            }
+
+            const titleName =
+                getTitleName(data);
+
+            const spotName =
+                data.spot_name ||
+                "無題のスポット";
+
+            const imagePath =
+                data.image_url ===
+                    "not_image" ||
+                !data.image_url
+
+                    ? "17dcbe459a812a827a0092ed44d9808f_t.jpeg"
+
+                    : data.image_url;
+
+            const titleColor =
+                titleColorMap[
+                    titleName
+                ] ||
+                "#0b3c5d";
+
+            // 公式サイトのURL（http/httpsの時だけボタンを表示する）
+            const titleURL =
+                /^https?:\/\//i.test(
+                    data.title_url || ""
+                )
+                    ? data.title_url
+                    : "";
+
+            const homeButtonHTML =
+                titleURL
+                    ? `
+                        <a
+                            href="${escapeHTML(titleURL)}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="popup-home"
+                            aria-label="作品の公式サイトを開く"
+                            title="作品の公式サイト"
+                        >
+                            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+                        </a>
+                    `
+                    : "";
+
+
+            // =============================================
+            // stampsyori.jsからスタンプ取得ボタンを受け取る
+            // =============================================
+            const stampHTML =
+                typeof window
+                    .getStampPopupHTML ===
+                "function"
+
+                    ? window
+                        .getStampPopupHTML(
+                            data
+                        )
+
+                    : "";
+
+
+            // =============================================
+            // ポップアップ
+            // =============================================
+            // ルートに追加済みなら、描き直した後も「追加済み」のままにする
+            const isInRoute =
+                selectedSpots.some(
+                    function (item) {
+                        return item.id === data.id;
+                    }
+                );
+            const popupHTML = `
+                <div class="popup-card">
+
+                    <div
+                        class="popup-title"
+                        style="background:${titleColor};"
+                    >
+                        ${escapeHTML(titleName)}
+                    </div>
+
+                    <h2 class="popup-spot">
+                        ${escapeHTML(spotName)}
+                    </h2>
+
+                    <div class="popup-section">
+                        <strong>
+                            登場シーン
+                        </strong>
+
+                        <p>
+                            ${escapeHTML(
+                                data.scene ||
+                                data.spot_info ||
+                                "情報がありません"
+                            )}
+                        </p>
+                    </div>
+
+                    <div class="popup-image">
+                        <img
+                            src="${escapeHTML(imagePath)}"
+                            alt="スポット画像"
+                            onerror="this.parentNode.classList.add('no-image')"
+                        >
+                    </div>
+
+                    <!-- スタンプ取得ボタン -->
+                    ${stampHTML}
+
+                    <div class="popup-buttons">
+
+                        ${homeButtonHTML}
+
+                        <button
+                            type="button"
+                            id="route-btn-${data.id}"
+                            onclick="addSpotToRouteById('${data.id}')"
+                            ${isInRoute ? "disabled" : ""}
+                        >
+                            ${getRouteButtonHTML(isInRoute)}
+                        </button>
+
+                    </div>
+
+                </div>
+            `;
+
+
+            const spotMarker =
+                new mapboxgl.Marker({
+                    color:
+                        titleColor
+                })
+                    .setLngLat([
+                        longitude,
+                        latitude
+                    ])
+                    .setPopup(
+                        createSpotPopup(
+                            popupHTML,
+                            longitude,
+                            latitude
+                        )
+                    )
+                    .addTo(map);
+
+
+            // stampsyori.jsがマーカーを判別するために必要
+            spotMarker
+                .getElement()
+                .dataset
+                .spotId =
+                    String(data.id);
+
+
+            if (
+                typeof window
+                    .hasCollectedStamp ===
+                    "function" &&
+                window.hasCollectedStamp(
+                    data.id
+                )
+            ) {
+                spotMarker
+                    .getElement()
+                    .classList
+                    .add(
+                        "stamp-completed-marker"
+                    );
+            }
+
+
+            spotMarkers.push(
+                spotMarker
+            );
+        }
+    );
+}
+
+
+// =========================================================
+// ズーム後にマーカーを描き直す
+// =========================================================
+map.on(
+    "zoomend",
+    function () {
+        if (hoverPopup) {
+            hoverPopup.remove();
+            hoverPopup = null;
+        }
+
+        drawMarkers(
+            currentSpots
+        );
+    }
+);
+
+
+// =========================================================
+// 地図をクリックしたらグループポップアップを閉じる
+// =========================================================
+map.on(
+    "click",
+    function (event) {
+        if (
+            !event.originalEvent
+                .target
+                .closest(
+                    ".mapboxgl-marker"
+                )
+        ) {
+            if (hoverPopup) {
+                hoverPopup.remove();
+                hoverPopup = null;
+            }
+        }
+    }
+);
+
+
+// =========================================================
+// 4. カスタム検索機能
+// =========================================================
+function searchCustomSpots(query) {
+    const keyword =
+        normalizeText(query);
+    if (!keyword) {
+        return [];
+    }
+
+    // 略称で入力された時の作品名
+    const aliasTitles =
+        findAliasTitles(keyword);
+
+    const matches =
+        spots.filter(
+            function (spot) {
+                const spotName =
+                    normalizeText(
+                        spot.spot_name
+                    );
+
+                const titleName =
+                    normalizeText(
+                        getTitleName(
+                            spot
+                        )
+                    );
+
+                const spotInfo =
+                    normalizeText(
+                        spot.spot_info
+                    );
+
+                return (
+                    spotName.includes(
+                        keyword
+                    ) ||
+                    titleName.includes(
+                        keyword
+                    ) ||
+                    spotInfo.includes(
+                        keyword
+                    ) ||
+                    aliasTitles.includes(
+                        titleName
+                    )
+                );
+            }
+        );
+
+    const results = matches.map(
+    function (spot) {
+        const title =
+            getTitleName(
+                spot
+            );
+
+        const spotName =
+            spot.spot_name ||
+            title ||
+            "無題のスポット";
+
+        return {
+            type: "Feature",
+
+            geometry: {
+                type: "Point",
+
+                coordinates: [
+                    Number(
+                        spot.coord
+                            ?.longitude
+                    ),
+
+                    Number(
+                        spot.coord
+                            ?.latitude
+                    )
+                ]
+            },
+
+            place_name:
+                `🌟 ${spotName} (作品: ${title})`,
+
+            properties: {
+                isCustomSpot: true,
+                id: spot.id
+            }
+        };
+    }
+);
+
+lastResultCount = results.length;
+
+return results;
+}
+
+
+// =========================================================
+// 検索ボックス
+// =========================================================
+// 検索の再実行用
+let geocoderInstance = null;
+let lastResultCount = 0;
+
+function initializeSearchBox() {
+    const container =
+        document.getElementById(
+            "search-container"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
+
+    geocoderInstance =
+        new MapboxGeocoder({
+            accessToken:
+                mapboxgl.accessToken,
+
+            mapboxgl:
+                mapboxgl,
+
+            marker:
+                true,
+
+            placeholder:
+                "場所・住所・駅名・スポットを検索",
+
+            localGeocoder:
+                searchCustomSpots,
+            localGeocoderOnly:
+                false,
+            // 住所・地名の検索は日本国内・日本語に絞り、
+            // 今見ている場所の近くを優先する
+            countries:
+                "jp",
+            language:
+                "ja",
+            // 候補の最大件数（聖地が多い作品でも多めに出るように。指定できる最大は10）
+            limit:
+                10,
+            proximity: {
+                longitude: map.getCenter().lng,
+                latitude: map.getCenter().lat
+            }
+        });
+
+    // 地図を動かしたら「近く」の基準も更新する
+    map.on(
+        "moveend",
+        function () {
+            const center =
+                map.getCenter();
+            geocoderInstance.setProximity({
+                longitude: center.lng,
+                latitude: center.lat
+            });
+        }
+    );
+
+    // 聖地が1件も見つからない時は知らせる（入力が止まってから1回だけ）
+    let noSpotTimer = null;
+    geocoderInstance.on(
+        "results",
+        function (event) {
+            clearTimeout(noSpotTimer);
+            const input =
+                container.querySelector("input");
+            const query =
+                input ? input.value.trim() : "";
+            if (
+                normalizeText(query).length < 2 ||
+                searchCustomSpots(query).length > 0
+            ) {
+                return;
+            }
+            noSpotTimer =
+                setTimeout(
+                    function () {
+                        if (typeof window.showToast === "function") {
+                            window.showToast(
+                                `「${query}」に該当する聖地はありません（住所・地名の候補を表示しています）`,
+                                "error"
+                            );
+                        }
+                    },
+                    800
+                );
+        }
+    );
+
+    container.appendChild(
+        geocoderInstance.onAdd(map)
+    ); 
+
+
+    geocoderInstance.on(
+        "result",
+        function (event) {
+            const feature =
+                event.result;
+
+            if (
+                feature.properties &&
+                feature.properties
+                    .isCustomSpot
+            ) {
+                const selectedSpot =
+                    spots.find(
+                        function (spot) {
+                            return (
+                                spot.id ===
+                                feature
+                                    .properties
+                                    .id
+                            );
+                        }
+                    );
+
+                if (selectedSpot) {
+                    currentSpots = [
+                        selectedSpot
+                    ];
+
+                    drawMarkers(
+                        currentSpots
+                    );
+
+                    if (
+                        geocoderInstance.mapMarker
+                    ) {
+                        geocoderInstance
+                            .mapMarker
+                            .remove();
+                    }
+
+                    // 地図の移動（ズーム）が終わるとピンが描き直されて
+                    // 先に開いた吹き出しが消えるため、移動と描画が終わってから開く
+                    setTimeout(
+                        function () {
+                            map.once(
+                                "idle",
+                                function () {
+                                    if (
+                                        spotMarkers
+                                            .length > 0 &&
+                                        spotMarkers[0].getPopup() &&
+                                        !spotMarkers[0].getPopup().isOpen()
+                                    ) {
+                                        spotMarkers[0]
+                                            .togglePopup();
+                                    }
+                                }
+                            );
+                        },
+                        100
+                    );
+                }
+            } else {
+                applyActiveFilter();
+            }
+        }
+    );
+
+
+    geocoderInstance.on(
+        "clear",
+        function () {
+            applyActiveFilter();
+        }
+    );
+}
+
+
+// =========================================================
+// 地図読み込み
+// =========================================================
+map.on(
+    "load",
+    async function () {
+        // データ読み込み
+        try {
+            await loadData();
+        } catch (error) {
+            console.error(
+                "データの読み込みに失敗:",
+                error
+            );
+        }
+
+
+        // ピン描画
+        try {
+            drawMarkers(
+                spots
+            );
+        } catch (error) {
+            console.error(
+                "ピンの描画に失敗:",
+                error
+            );
+        }
+
+
+        // 検索バー表示
+        try {
+            initializeSearchBox();
+        } catch (error) {
+            console.error(
+                "検索バーの表示に失敗:",
+                error
+            );
+        }
+
+
+        // URLで聖地が指定されていれば、そこを表示する
+        // （その時は現在地へカメラが動かないよう、現在地の自動取得はしない）
+        let openedSpot = false;
+        try {
+            openedSpot =
+                openSpotFromUrl();
+        } catch (error) {
+            console.warn(
+                "指定された聖地を開けませんでした:",
+                error
+            );
+        }
+
+        // 現在地取得
+        try {
+            if (!openedSpot) geolocate.trigger();
+        } catch (error) {
+            console.warn(
+                "現在地の取得に失敗:",
+                error
+            );
+        }
+    }
+);
+
+
+// =========================================================
+// 5. UIイベントとその他の操作
+// =========================================================
+// ※ 以前あった「長押しでピンを立てる」処理は、立てたピンをどこでも使っておらず
+//   スマホで地図を長押しすると謎のピンが出るだけだったので削除した
+
+// =========================================================
+// サイドメニュー
+// =========================================================
+window.toggleMenu =
+    function () {
+        document
+            .getElementById(
+                "side-menu"
+            )
+            .classList
+            .toggle(
+                "open"
+            );
+
+        document
+            .getElementById(
+                "hamburger-btn"
+            )
+            .classList
+            .toggle(
+                "active"
+            );
+    };
+
+
+// =========================================================
+// 2D・3D切り替え
+// =========================================================
+window.toggleView =
+    function () {
+        const button =
+            document.getElementById(
+                "toggle-view-btn"
+            );
+
+        if (!is3D) {
+            map.touchPitch.enable();
+
+            map.easeTo({
+                pitch: 70,
+                bearing: -20,
+                duration: 1500
+            });
+
+            button.classList.add(
+                "mode3d"
+            );
+            button.setAttribute(
+                "aria-pressed",
+                "true"
+            );
+
+            is3D = true;
+        } else {
+            map.touchPitch.disable();
+
+            map.setPitch(0);
+
+            map.easeTo({
+                pitch: 0,
+                bearing: 0,
+                duration: 1500
+            });
+
+            button.classList.remove(
+                "mode3d"
+            );
+            button.setAttribute(
+                "aria-pressed",
+                "false"
+            );
+
+            is3D = false;
+        }
+    };
+
+
+// =========================================================
+// 現在地ボタン
+// =========================================================
+window.moveToCurrentLocation =
+    function () {
+        geolocate.trigger();
+    };
+
+
+// =========================================================
+// 6. アニメで絞り込み
+// =========================================================
+
+// 今かかっている絞り込み（チェックした作品名と、入力したキーワード）
+const activeFilter = {
+    titles: [],
+    keyword: ""
+};
+
+// 絞り込みの条件に合うスポットを返す（条件が無ければ全件）
+function filterSpots() {
+    const keyword =
+        normalizeText(
+            activeFilter.keyword
+        );
+
+    if (
+        keyword === "" &&
+        activeFilter.titles.length === 0
+    ) {
+        return spots;
+    }
+
+    return spots.filter(
+        function (spot) {
+            const rawTitle =
+                getTitleName(spot);
+
+            const isMatchKeyword =
+                keyword !== "" &&
+                normalizeText(rawTitle).includes(keyword);
+
+            const isMatchCheck =
+                activeFilter.titles.includes(rawTitle);
+
+            return isMatchKeyword || isMatchCheck;
+        }
+    );
+}
+
+// 絞り込みを地図に反映する
+function applyActiveFilter() {
+    currentSpots =
+        filterSpots();
+
+    drawMarkers(
+        currentSpots
+    );
+
+    renderFilterChips();
+}
+
+// 検索バーの下に「絞り込み中の作品」の札を並べる（× で1つずつ外せる）
+function renderFilterChips() {
+    const area =
+        document.getElementById(
+            "filter-chips"
+        );
+
+    if (!area) {
+        return;
+    }
+
+    area.innerHTML = "";
+
+    activeFilter.titles.forEach(
+        function (title) {
+            area.appendChild(
+                createFilterChip(
+                    title,
+                    getTitleColor(title),
+                    function () {
+                        activeFilter.titles =
+                            activeFilter.titles.filter(
+                                function (item) {
+                                    return item !== title;
+                                }
+                            );
+                        applyActiveFilter();
+                    }
+                )
+            );
+        }
+    );
+
+    if (activeFilter.keyword) {
+        area.appendChild(
+            createFilterChip(
+                `「${activeFilter.keyword}」`,
+                null,
+                function () {
+                    activeFilter.keyword = "";
+                    applyActiveFilter();
+                }
+            )
+        );
+    }
+
+    // 絞り込み中はボタンの色を変えて分かるようにする
+    document
+        .getElementById(
+            "filter-btn"
+        )
+        ?.classList
+        .toggle(
+            "is-active",
+            area.children.length > 0
+        );
+}
+
+function createFilterChip(label, color, onRemove) {
+    const chip =
+        document.createElement(
+            "button"
+        );
+    chip.type = "button";
+    chip.className = "filter-chip";
+    chip.setAttribute(
+        "aria-label",
+        `${label} の絞り込みを解除`
+    );
+
+    if (color) {
+        const dot =
+            document.createElement(
+                "span"
+            );
+        dot.className = "color-dot";
+        dot.style.background = color;
+        chip.appendChild(dot);
+    }
+
+    chip.appendChild(
+        document.createTextNode(
+            label
+        )
+    );
+
+    const cross =
+        document.createElement(
+            "span"
+        );
+    cross.className = "chip-x";
+    cross.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+    cross.textContent = "×";
+    chip.appendChild(cross);
+
+    chip.onclick = onRemove;
+    return chip;
+}
+
+// 絞り込み画面の作品一覧（ピンの色と件数つき）
+function populateAnimeList() {
+    const listContainer =
+        document.getElementById(
+            "anime-list"
+        );
+
+    if (!listContainer) {
+        return;
+    }
+
+    listContainer.innerHTML = "";
+
+    Object.keys(
+        titleColorMap
+    ).forEach(
+        function (title) {
+            if (!title) {
+                return;
+            }
+
+            const label =
+                document.createElement(
+                    "label"
+                );
+
+            const checkbox =
+                document.createElement(
+                    "input"
+                );
+            checkbox.type = "checkbox";
+            checkbox.value = title;
+            // 今絞り込んでいる作品にはチェックを付けておく
+            checkbox.checked =
+                activeFilter.titles.includes(title);
+
+            // ピンと同じ色の丸（凡例）
+            const dot =
+                document.createElement(
+                    "span"
+                );
+            dot.className = "color-dot";
+            dot.style.background =
+                getTitleColor(title);
+
+            const name =
+                document.createElement(
+                    "span"
+                );
+            name.className = "anime-name";
+            name.textContent = title;
+
+            const count =
+                document.createElement(
+                    "span"
+                );
+            count.className = "anime-count";
+            count.textContent =
+                spots.filter(
+                    function (spot) {
+                        return getTitleName(spot) === title;
+                    }
+                ).length + "件";
+
+            label.append(
+                checkbox,
+                dot,
+                name,
+                count
+            );
+
+            listContainer.appendChild(
+                label
+            );
+        }
+    );
+}
+
+// =========================================================
+// 絞り込み画面を開く
+// =========================================================
+window.openFilter =
+    function () {
+        populateAnimeList();
+
+        const searchInput =
+            document.getElementById(
+                "anime-search"
+            );
+
+        // 今の絞り込みの状態を表示しておく
+        searchInput.value =
+            activeFilter.keyword;
+
+        searchInput.onkeydown =
+            function (event) {
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
+                    event.preventDefault();
+                    window.applyFilter();
+                }
+            };
+
+        window.searchAnime();
+
+        document
+            .getElementById(
+                "filter-modal"
+            )
+            .style
+            .display =
+                "block";
+    };
+
+// =========================================================
+// 絞り込み画面を閉じる
+// =========================================================
+window.closeFilter =
+    function () {
+        document
+            .getElementById(
+                "filter-modal"
+            )
+            .style
+            .display =
+                "none";
+    };
+
+
+// =========================================================
+// 作品検索（絞り込み画面の一覧を、入力した作品名で絞る）
+// =========================================================
+window.searchAnime =
+    function () {
+        const keyword =
+            normalizeText(
+                document.getElementById(
+                    "anime-search"
+                ).value
+            );
+
+        document
+            .querySelectorAll(
+                "#anime-list label"
+            )
+            .forEach(
+                function (label) {
+                    const title =
+                        normalizeText(
+                            label.querySelector("input").value
+                        );
+
+                    // "" にするとCSS側の表示方法（flex）に戻る
+                    label.style.display =
+                        title.includes(keyword)
+                            ? ""
+                            : "none";
+                }
+            );
+    };
+
+// =========================================================
+// 絞り込み適用
+// =========================================================
+window.applyFilter =
+    function () {
+        const previous = {
+            titles: activeFilter.titles.slice(),
+            keyword: activeFilter.keyword
+        };
+
+        activeFilter.keyword =
+            document
+                .getElementById(
+                    "anime-search"
+                )
+                .value
+                .trim();
+
+        activeFilter.titles =
+            Array.from(
+                document.querySelectorAll(
+                    "#anime-list input[type='checkbox']:checked"
+                )
+            ).map(
+                function (checkbox) {
+                    return checkbox.value;
+                }
+            );
+
+        // 1件も無い時は元の絞り込みに戻し、画面は閉じずに知らせる
+        if (filterSpots().length === 0) {
+            activeFilter.titles = previous.titles;
+            activeFilter.keyword = previous.keyword;
+            window.showToast(
+                "入力された作品名のスポットは見つかりませんでした",
+                "error"
+            );
+            return;
+        }
+
+        applyActiveFilter();
+        window.closeFilter();
+    };
+
+// =========================================================
+// 絞り込みリセット
+// =========================================================
+window.resetFilter =
+    function () {
+        document.getElementById(
+            "anime-search"
+        ).value = "";
+
+        document
+            .querySelectorAll(
+                "#anime-list input[type='checkbox']"
+            )
+            .forEach(
+                function (checkbox) {
+                    checkbox.checked = false;
+                }
+            );
+
+        window.searchAnime();
+
+        activeFilter.titles = [];
+        activeFilter.keyword = "";
+        applyActiveFilter();
+    };
+
+// =========================================================
+// 7. 経路案内
+// =========================================================
+const selectedSpots = [];
+
+window.selectedSpots =
+    selectedSpots;
+
+
+// IDを使ってルートへ追加
+window.addSpotToRouteById =
+    function (spotId) {
+        const spot =
+            spots.find(
+                function (item) {
+                    return (
+                        item.id ===
+                        spotId
+                    );
+                }
+            );
+
+        if (
+            !spot ||
+            !spot.coord
+        ) {
+            window.showToast(
+                "スポットデータが見つかりません",
+                "error"
+            );
+
+            return;
+        }
+
+        const latitude =
+            Number(
+                spot.coord.latitude
+            );
+
+        const longitude =
+            Number(
+                spot.coord.longitude
+            );
+
+        if (
+            selectedSpots.some(
+                function (item) {
+                    return (
+                        item.id ===
+                        spot.id
+                    );
+                }
+            )
+        ) {
+            window.showToast(
+                "この場所はすでにルートに追加されています",
+                "error"
+            );
+
+            return;
+        }
+
+        selectedSpots.push({
+            id: spot.id,
+
+            name:
+                spot.spot_name ||
+                getTitleName(spot) ||
+                "無題のスポット",
+
+            latitude:
+                latitude,
+
+            longitude:
+                longitude
+        });
+
+        document
+            .getElementById(
+                "routePanel"
+            )
+            .style
+            .display =
+                "flex";
+
+        updateRouteList();
+
+        syncRouteButtons();
+
+        window.showToast(
+            `「${selectedSpots[selectedSpots.length - 1].name}」をルートに追加しました`
+        );
+
+    };
+
+
+// =========================================================
+// ルートから1件削除
+// =========================================================
+window.removeSpotFromRoute =
+    function (spotId) {
+        const index =
+            selectedSpots.findIndex(
+                function (spot) {
+                    return (
+                        spot.id ===
+                        spotId
+                    );
+                }
+            );
+
+        if (index !== -1) {
+            selectedSpots.splice(
+                index,
+                1
+            );
+
+            updateRouteList();
+            syncRouteButtons();
+
+            if (
+                selectedSpots.length ===
+                0
+            ) {
+                document
+                    .getElementById(
+                        "routePanel"
+                    )
+                    .style
+                    .display =
+                        "none";
+            }
+        }
+    };
+
+
+// =========================================================
+// ルートを全削除
+// =========================================================
+window.clearSelectedSpots =
+    function () {
+        selectedSpots.length = 0;
+
+        updateRouteList();
+        syncRouteButtons();
+
+        document
+            .getElementById(
+                "routePanel"
+            )
+            .style
+            .display =
+                "none";
+    };
+
+
+// =========================================================
+// ルート一覧更新
+// =========================================================
+function updateRouteList() {
+    const routeList =
+        document.getElementById(
+            "routeList"
+        );
+
+    if (!routeList) {
+        return;
+    }
+
+    routeList.innerHTML = "";
+
+    // パネルの見出しに件数を表示
+    const routeCount =
+        document.getElementById(
+            "route-count"
+        );
+    if (routeCount) {
+        routeCount.textContent =
+            selectedSpots.length;
+    }
+
+    if (
+        selectedSpots.length === 0
+    ) {
+        routeList.innerHTML =
+            '<p class="route-empty">行きたい場所はありません</p>';
+
+        return;
+    }
+
+    selectedSpots.forEach(
+        function (spot, index) {
+            const routeItem =
+                document.createElement(
+                    "div"
+                );
+
+            routeItem.className =
+                "routeItem";
+
+            routeItem.dataset.index =
+                index;
+
+            // ドラッグで並べ替えるためのつまみ（スマホのタッチでも動く）
+            const handle =
+                document.createElement(
+                    "span"
+                );
+
+            handle.className =
+                "route-handle";
+
+            handle.textContent =
+                "⠿";
+
+            handle.title =
+                "ドラッグで並べ替え";
+
+            handle.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+            handle.addEventListener(
+                "pointerdown",
+                startRouteDrag
+            );
+
+            const nameSpan =
+                document.createElement(
+                    "span"
+                );
+
+            nameSpan.className =
+                "route-name";
+
+            nameSpan.textContent =
+                `${index + 1}. ${spot.name}`;
+
+            // ▲▼ボタンで1つずつ入れ替える
+            const moveButtons =
+                document.createElement(
+                    "div"
+                );
+
+            moveButtons.className =
+                "route-move";
+
+            moveButtons.appendChild(
+                createRouteMoveButton(
+                    "▲",
+                    `「${spot.name}」を1つ前へ`,
+                    index,
+                    index - 1
+                )
+            );
+
+            moveButtons.appendChild(
+                createRouteMoveButton(
+                    "▼",
+                    `「${spot.name}」を1つ後ろへ`,
+                    index,
+                    index + 1
+                )
+            );
+
+            const removeButton =
+                document.createElement(
+                    "button"
+                );
+
+            removeButton.type =
+                "button";
+
+            removeButton.className =
+                "route-remove";
+
+            removeButton.textContent =
+                "×";
+
+            removeButton.setAttribute(
+                "aria-label",
+                `「${spot.name}」をルートから外す`
+            );
+
+            removeButton.onclick =
+                function () {
+                    window.removeSpotFromRoute(
+                        spot.id
+                    );
+                };
+
+            routeItem.appendChild(
+                handle
+            );
+
+            routeItem.appendChild(
+                nameSpan
+            );
+
+            routeItem.appendChild(
+                moveButtons
+            );
+
+            routeItem.appendChild(
+                removeButton
+            );
+
+            routeList.appendChild(
+                routeItem
+            );
+        }
+    );
+}
+
+
+// ▲▼ボタンを作る（端の項目では押せないようにする）
+function createRouteMoveButton(label, ariaLabel, fromIndex, toIndex) {
+    const button =
+        document.createElement(
+            "button"
+        );
+
+    button.type =
+        "button";
+
+    button.textContent =
+        label;
+
+    button.setAttribute(
+        "aria-label",
+        ariaLabel
+    );
+
+    button.disabled =
+        toIndex < 0 ||
+        toIndex >= selectedSpots.length;
+
+    button.onclick =
+        function () {
+            window.moveRouteSpot(
+                fromIndex,
+                toIndex
+            );
+
+            // 続けて押せるように、移動先の同じボタンにフォーカスを戻す
+            const moved =
+                document.querySelector(
+                    `#routeList .routeItem[data-index="${toIndex}"] .route-move button:nth-child(${label === "▲" ? 1 : 2})`
+                );
+
+            if (moved && !moved.disabled) {
+                moved.focus();
+            }
+        };
+
+    return button;
+}
+
+
+// =========================================================
+// ルートの順番を入れ替える
+// =========================================================
+window.moveRouteSpot =
+    function (fromIndex, toIndex) {
+        if (
+            fromIndex === toIndex ||
+            toIndex < 0 ||
+            toIndex >= selectedSpots.length
+        ) {
+            return;
+        }
+
+        const moved =
+            selectedSpots.splice(
+                fromIndex,
+                1
+            )[0];
+
+        selectedSpots.splice(
+            toIndex,
+            0,
+            moved
+        );
+
+        updateRouteList();
+    };
+
+
+// ドラッグ中の項目を、指（マウス）の位置に合わせて一覧の中で動かす
+function startRouteDrag(event) {
+    const item =
+        event.currentTarget.closest(
+            ".routeItem"
+        );
+
+    const routeList =
+        document.getElementById(
+            "routeList"
+        );
+
+    const fromIndex =
+        Number(
+            item.dataset.index
+        );
+
+    event.preventDefault();
+
+    item.classList.add(
+        "dragging"
+    );
+
+    function onMove(moveEvent) {
+        const siblings =
+            Array.from(
+                routeList.querySelectorAll(
+                    ".routeItem:not(.dragging)"
+                )
+            );
+
+        // 指より下にある最初の項目の手前へ入れる
+        const next =
+            siblings.find(
+                function (sibling) {
+                    const rect =
+                        sibling.getBoundingClientRect();
+
+                    return (
+                        moveEvent.clientY <
+                        rect.top + rect.height / 2
+                    );
+                }
+            );
+
+        routeList.insertBefore(
+            item,
+            next || null
+        );
+
+        // 一覧の端に来たら自動でスクロールする
+        const listRect =
+            routeList.getBoundingClientRect();
+
+        if (moveEvent.clientY < listRect.top + 24) {
+            routeList.scrollTop -= 8;
+        } else if (moveEvent.clientY > listRect.bottom - 24) {
+            routeList.scrollTop += 8;
+        }
+    }
+
+    function onEnd() {
+        document.removeEventListener(
+            "pointermove",
+            onMove
+        );
+
+        document.removeEventListener(
+            "pointerup",
+            onEnd
+        );
+
+        document.removeEventListener(
+            "pointercancel",
+            onEnd
+        );
+
+        const toIndex =
+            Array.from(
+                routeList.querySelectorAll(
+                    ".routeItem"
+                )
+            ).indexOf(
+                item
+            );
+
+        item.classList.remove(
+            "dragging"
+        );
+
+        if (toIndex === fromIndex) {
+            updateRouteList();
+        } else {
+            window.moveRouteSpot(
+                fromIndex,
+                toIndex
+            );
+        }
+    }
+
+    document.addEventListener(
+        "pointermove",
+        onMove
+    );
+
+    document.addEventListener(
+        "pointerup",
+        onEnd
+    );
+
+    document.addEventListener(
+        "pointercancel",
+        onEnd
+    );
+}
+
+
+// =========================================================
+// Googleマップへ渡す
+// =========================================================
+window.openGoogleMapsRoute =
+    function () {
+        if (
+            selectedSpots.length === 0
+        ) {
+            window.showToast(
+                "行きたい場所を追加してください",
+                "error"
+            );
+
+            return;
+        }
+
+        const locations =
+            selectedSpots.map(
+                function (spot) {
+                    return (
+                        `${spot.latitude},${spot.longitude}`
+                    );
+                }
+            );
+
+        const destination =
+            locations[
+                locations.length - 1
+            ];
+
+        const waypoints =
+            locations
+                .slice(
+                    0,
+                    -1
+                )
+                .join("|");
+
+        let url =
+            "https://www.google.com/maps/dir/?" +
+            "api=1" +
+            `&destination=${encodeURIComponent(destination)}`;
+
+        if (waypoints) {
+            url +=
+                `&waypoints=${encodeURIComponent(waypoints)}`;
+        }
+
+        url +=
+            "&travelmode=walking";
+
+        window.open(
+            url,
+            "_blank"
+        );
+    };
+
+
+// =========================================================
+// HTML読み込み後に経路ボタンを接続
+// =========================================================
+// type="module" はHTML読み込み後に実行されるので、待たずにそのまま接続できる
+document
+    .getElementById(
+        "open-google-route"
+    )
+    ?.addEventListener(
+        "click",
+        window.openGoogleMapsRoute
+    );
+
+document
+    .getElementById(
+        "clear-route"
+    )
+    ?.addEventListener(
+        "click",
+        window.clearSelectedSpots
+    );
+// ==========================================
+// デバッグ：マウスがある場所の座標を記録
+// ==========================================
+window.debugStampMousePosition = null;
+
+map.on(
+    "mousemove",
+
+    function (event) {
+        window.debugStampMousePosition = {
+            latitude:
+                event.lngLat.lat,
+
+            longitude:
+                event.lngLat.lng
+        };
+    }
+);
