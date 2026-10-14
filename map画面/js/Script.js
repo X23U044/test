@@ -15,6 +15,15 @@ import {
     getDocs
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
+// 作品名と作品ごとの色（スタンプ帳・マイページと共通）
+import {
+    getTitleColor,
+    getTitleName
+} from "./title-colors.js";
+
+// stampsyori.js（スタンプ獲得の演出）からも同じ色を使う
+window.getTitleColor = getTitleColor;
+
 const firebaseConfig = {
     apiKey: "AIzaSyCga1yFbLWdLXmMrNwScXuOGUWnz283eYs",
     authDomain: "sisukai-121cf.firebaseapp.com",
@@ -47,7 +56,6 @@ window.spots = spots;
 
 let currentSpots = [];
 let titleMap = {};
-let marker = null;
 let hoverPopup = null;
 
 // =========================================================
@@ -55,41 +63,6 @@ let hoverPopup = null;
 // データの読み込み順で色が変わらないよう、作品ごとに色を固定する。
 // ここに無い作品は、作品名から決まる色（毎回同じ色）になる
 // =========================================================
-const TITLE_COLORS = {
-    "ガールズバンドクライ": "#E53935",
-    "響け！ユーフォニアム": "#1E88E5",
-    "やはり俺の青春ラブコメはまちがっている。": "#5E35B1",
-    "超かぐや姫！": "#EC407A",
-    "青春ブタ野郎はバニーガール先輩の夢を見ない": "#00ACC1",
-    "ゆるキャン△": "#43A047",
-    "冴えない彼女の育てかた": "#F9A825",
-    "リコリス・リコイル": "#6D4C41",
-    "【推しの子】": "#FF7043",
-    "鬼滅の刃": "#00897B",
-    "その他": "#78909C"
-};
-
-// 上に無い作品に使う色
-const EXTRA_COLORS = [
-    "#8E24AA",
-    "#3949AB",
-    "#C0CA33",
-    "#D81B60",
-    "#546E7A",
-    "#7CB342"
-];
-
-function getTitleColor(title) {
-    if (TITLE_COLORS[title]) {
-        return TITLE_COLORS[title];
-    }
-    let sum = 0;
-    for (const character of String(title)) {
-        sum += character.codePointAt(0);
-    }
-    return EXTRA_COLORS[sum % EXTRA_COLORS.length];
-}
-
 const titleColorMap = {};
 
 const map = new mapboxgl.Map({
@@ -269,9 +242,6 @@ function escapeHTML(value) {
 // =========================================================
 // 作品名が無いスポットは「その他」として扱う
 // （色分け・絞り込みのリストと同じ名前にそろえる）
-function getTitleName(data) {
-    return data.title_name || "その他";
-}
 
 
 async function loadData() {
@@ -325,6 +295,28 @@ async function loadData() {
     ) {
         window.refreshStampUI();
     }
+
+    // 検索結果が0件だった場合だけ再検索
+    setTimeout(function () {
+
+        const input =
+            document.querySelector(
+                ".mapboxgl-ctrl-geocoder input"
+            );
+
+        if (
+            geocoderInstance &&
+            spots.length > 0 &&
+            lastResultCount === 0 &&
+            input &&
+            input.value.trim()
+        ) {
+            geocoderInstance.query(
+                input.value.trim()
+            );
+        }
+
+    }, 500);
 }
 
 
@@ -915,9 +907,9 @@ function drawMarkers(list) {
 
             if (
                 typeof window
-                    .isSpotStamped ===
+                    .hasCollectedStamp ===
                     "function" &&
-                window.isSpotStamped(
+                window.hasCollectedStamp(
                     data.id
                 )
             ) {
@@ -1029,53 +1021,61 @@ function searchCustomSpots(query) {
             }
         );
 
-    return matches.map(
-        function (spot) {
-            const title =
-                getTitleName(
-                    spot
-                );
+    const results = matches.map(
+    function (spot) {
+        const title =
+            getTitleName(
+                spot
+            );
 
-            const spotName =
-                spot.spot_name ||
-                title ||
-                "無題のスポット";
+        const spotName =
+            spot.spot_name ||
+            title ||
+            "無題のスポット";
 
-            return {
-                type: "Feature",
+        return {
+            type: "Feature",
 
-                geometry: {
-                    type: "Point",
+            geometry: {
+                type: "Point",
 
-                    coordinates: [
-                        Number(
-                            spot.coord
-                                ?.longitude
-                        ),
+                coordinates: [
+                    Number(
+                        spot.coord
+                            ?.longitude
+                    ),
 
-                        Number(
-                            spot.coord
-                                ?.latitude
-                        )
-                    ]
-                },
+                    Number(
+                        spot.coord
+                            ?.latitude
+                    )
+                ]
+            },
 
-                place_name:
-                    `🌟 ${spotName} (作品: ${title})`,
+            place_name:
+                `🌟 ${spotName} (作品: ${title})`,
 
-                properties: {
-                    isCustomSpot: true,
-                    id: spot.id
-                }
-            };
-        }
-    );
+            properties: {
+                isCustomSpot: true,
+                id: spot.id
+            }
+        };
+    }
+);
+
+lastResultCount = results.length;
+
+return results;
 }
 
 
 // =========================================================
 // 検索ボックス
 // =========================================================
+// 検索の再実行用
+let geocoderInstance = null;
+let lastResultCount = 0;
+
 function initializeSearchBox() {
     const container =
         document.getElementById(
@@ -1088,7 +1088,7 @@ function initializeSearchBox() {
 
     container.innerHTML = "";
 
-    const geocoder =
+    geocoderInstance =
         new MapboxGeocoder({
             accessToken:
                 mapboxgl.accessToken,
@@ -1127,7 +1127,7 @@ function initializeSearchBox() {
         function () {
             const center =
                 map.getCenter();
-            geocoder.setProximity({
+            geocoderInstance.setProximity({
                 longitude: center.lng,
                 latitude: center.lat
             });
@@ -1136,7 +1136,7 @@ function initializeSearchBox() {
 
     // 聖地が1件も見つからない時は知らせる（入力が止まってから1回だけ）
     let noSpotTimer = null;
-    geocoder.on(
+    geocoderInstance.on(
         "results",
         function (event) {
             clearTimeout(noSpotTimer);
@@ -1166,11 +1166,11 @@ function initializeSearchBox() {
     );
 
     container.appendChild(
-        geocoder.onAdd(map)
-    );
+        geocoderInstance.onAdd(map)
+    ); 
 
 
-    geocoder.on(
+    geocoderInstance.on(
         "result",
         function (event) {
             const feature =
@@ -1203,9 +1203,9 @@ function initializeSearchBox() {
                     );
 
                     if (
-                        geocoder.mapMarker
+                        geocoderInstance.mapMarker
                     ) {
-                        geocoder
+                        geocoderInstance
                             .mapMarker
                             .remove();
                     }
@@ -1239,7 +1239,7 @@ function initializeSearchBox() {
     );
 
 
-    geocoder.on(
+    geocoderInstance.on(
         "clear",
         function () {
             applyActiveFilter();
@@ -1318,84 +1318,8 @@ map.on(
 // =========================================================
 // 5. UIイベントとその他の操作
 // =========================================================
-let pressTimer;
-
-const canvas =
-    map.getCanvas();
-
-
-// スマホ長押し
-canvas.addEventListener(
-    "touchstart",
-    function (event) {
-        pressTimer =
-            setTimeout(
-                function () {
-                    const touch =
-                        event.touches[0];
-
-                    const rect =
-                        canvas
-                            .getBoundingClientRect();
-
-                    const lngLat =
-                        map.unproject([
-                            touch.clientX -
-                                rect.left,
-
-                            touch.clientY -
-                                rect.top
-                        ]);
-
-                    if (marker) {
-                        marker.remove();
-                    }
-
-                    marker =
-                        new mapboxgl.Marker({
-                            draggable: true
-                        })
-                            .setLngLat(
-                                lngLat
-                            )
-                            .addTo(map);
-                },
-                600
-            );
-    }
-);
-
-
-canvas.addEventListener(
-    "touchend",
-    function () {
-        clearTimeout(
-            pressTimer
-        );
-    }
-);
-
-
-canvas.addEventListener(
-    "touchmove",
-    function () {
-        clearTimeout(
-            pressTimer
-        );
-    }
-);
-
-
-map.on(
-    "contextmenu",
-    function () {
-        if (marker) {
-            marker.remove();
-            marker = null;
-        }
-    }
-);
-
+// ※ 以前あった「長押しでピンを立てる」処理は、立てたピンをどこでも使っておらず
+//   スマホで地図を長押しすると謎のピンが出るだけだったので削除した
 
 // =========================================================
 // サイドメニュー
