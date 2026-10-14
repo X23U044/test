@@ -1,0 +1,63 @@
+@charset "UTF-8";
+
+/* 共通スタイルは common.css。ここは新規登録・登録確認画面専用 */
+
+/* 進捗ステップ（入力 → 確認 → 完了） */
+.steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 0 24px;
+    padding: 0;
+    list-style: none;
+    counter-reset: none;
+}
+
+.step {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--color-text-sub);
+}
+
+/* ステップ同士をつなぐ線 */
+.step:not(:first-child)::before {
+    content: "";
+    position: absolute;
+    top: 14px;
+    right: 50%;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-border);
+    z-index: 0;
+}
+
+.step span {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: var(--color-border);
+    color: #fff;
+    font-weight: bold;
+}
+
+.step.active,
+.step.done { color: var(--color-primary); font-weight: bold; }
+
+.step.active span,
+.step.done span { background-color: var(--color-primary); }
+
+.step.active span { box-shadow: 0 0 0 4px rgba(11, 60, 93, 0.15); }
+
+.step.done::before,
+.step.active::before { background-color: var(--color-primary); }
+
+.card .btn { margin-top: 8px; }
