@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイページ - 聖地巡礼NAVI</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/stamp-rank.css">
+    <link rel="stylesheet" href="../css/mypage.css">
+</head>
+<body>
+
+    <!-- アプリ共通ヘッダー -->
+    <header class="app-header">
+        <button type="button" class="back-btn" onclick="goToMap()" aria-label="マップに戻る">＜ マップ</button>
+        <h1>マイページ</h1>
+    </header>
+
+    <main class="content">
+        <!-- ユーザープロフィール -->
+        <section class="profile-card">
+            <div class="profile-icon" id="current-icon" aria-hidden="true">👤</div>
+            <div class="profile-info">
+                <h2 class="user-name" id="current-name">田中 太郎</h2>
+                <p class="user-id" id="current-user-id">ID: ゲスト</p>
+            </div>
+            <button type="button" class="edit-profile-btn" onclick="openEditModal()">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>
+                編集
+            </button>
+        </section>
+
+        <!-- 集計（獲得スタンプ・スタンプを取った作品・コンプリートした作品・達成率） -->
+        <section class="stats" aria-label="巡礼の記録">
+            <button type="button" class="stat" onclick="goToStamp()">
+                <span class="stat-value"><strong id="stamp-count">0</strong>個</span>
+                <span class="stat-label">獲得スタンプ</span>
+            </button>
+            <div class="stat">
+                <span class="stat-value"><strong id="anime-count">0</strong>作品</span>
+                <span class="stat-label">スタンプを取った作品</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value"><strong id="complete-count">—</strong>作品</span>
+                <span class="stat-label">コンプリートした作品</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value"><strong id="progress-rate">—</strong>%</span>
+                <span class="stat-label">聖地の達成率</span>
+            </div>
+        </section>
+
+        <!-- 作品ごとの達成度 -->
+        <section class="panel">
+            <div class="panel-head">
+                <h2>作品ごとの達成度</h2>
+                <a href="stamp.html" class="panel-link">スタンプ帳で見る ›</a>
+            </div>
+            <ul class="progress-list" id="progress-list"></ul>
+            <!-- 作品が多い時は上位だけ表示し、残りはこのボタンで開く -->
+            <button type="button" class="more-btn" id="progress-more" aria-controls="progress-list" aria-expanded="false" hidden></button>
+        </section>
+
+        <!-- 最近獲得したスタンプ -->
+        <section class="panel">
+            <div class="panel-head">
+                <h2>最近獲得したスタンプ</h2>
+                <a href="stamp.html" class="panel-link">すべて見る ›</a>
+            </div>
+            <ul class="recent-list" id="recent-list"></ul>
+        </section>
+
+        <!-- メニュー -->
+        <nav class="menu-list" aria-label="マイページメニュー">
+            <button type="button" class="menu-item" onclick="goToHistory()">
+                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                <span class="menu-text">巡礼履歴・ルート案内</span>
+                <svg class="icon menu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button type="button" class="menu-item" onclick="goToStamp()">
+                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/></svg></span>
+                <span class="menu-text">獲得スタンプ一覧</span>
+                <svg class="icon menu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button type="button" class="menu-item" onclick="location.href='register.html'">
+                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-7.2 7-12.5A7 7 0 0 0 5 9.5C5 14.8 12 22 12 22z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+                <span class="menu-text">聖地を登録する</span>
+                <svg class="icon menu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button type="button" class="menu-item" onclick="location.href='guide.html'">
+                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h7z"/></svg></span>
+                <span class="menu-text">操作ガイド</span>
+                <svg class="icon menu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button type="button" class="menu-item" onclick="location.href='information.html'">
+                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+                <span class="menu-text">お問い合わせ</span>
+                <svg class="icon menu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+        </nav>
+
+        <!-- ログアウト -->
+        <button type="button" class="logout-btn" onclick="openLogoutModal()">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l5-5-5-5M15 12H4"/></svg>
+            ログアウト
+        </button>
+    </main>
+
+    <!-- =============== プロフィール編集のポップアップ =============== -->
+    <div id="edit-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+        <div class="modal-content">
+            <button type="button" class="modal-close-btn" onclick="closeEditModal()" aria-label="閉じる" data-modal-close>✕</button>
+            <h2 class="modal-title" id="edit-title">プロフィール編集</h2>
+
+            <!-- 名前入力 -->
+            <div class="form-group">
+                <label for="edit-name-input">ニックネーム</label>
+                <input type="text" id="edit-name-input" value="田中 太郎" maxlength="20">
+                <p class="error-text">ニックネームを入力してください。</p>
+            </div>
+
+            <!-- アイコン選択 -->
+            <div class="form-group">
+                <span class="form-label" id="icon-label">アイコン</span>
+                <div class="icon-grid" role="radiogroup" aria-labelledby="icon-label">
+                    <!-- this は「クリックされた要素自身」をJSに渡す -->
+                    <button type="button" class="icon-option selected" role="radio" aria-checked="true" onclick="selectIcon(this, '👤')">👤</button>
+                    <button type="button" class="icon-option" role="radio" aria-checked="false" onclick="selectIcon(this, '🐶')">🐶</button>
+                    <button type="button" class="icon-option" role="radio" aria-checked="false" onclick="selectIcon(this, '🐱')">🐱</button>
+                    <button type="button" class="icon-option" role="radio" aria-checked="false" onclick="selectIcon(this, '🦊')">🦊</button>
+                    <button type="button" class="icon-option" role="radio" aria-checked="false" onclick="selectIcon(this, '🐻')">🐻</button>
+                    <button type="button" class="icon-option" role="radio" aria-checked="false" onclick="selectIcon(this, '🐸')">🐸</button>
+                </div>
+            </div>
+
+            <!-- 保存ボタン -->
+            <p class="form-alert" id="profile-error" role="alert" hidden></p>
+            <button type="button" class="btn btn-primary" id="save-profile-btn" onclick="saveProfile()">保存する</button>
+        </div>
+    </div>
+
+    <!-- =============== ログアウト確認のポップアップ =============== -->
+    <div id="logout-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="logout-title">
+        <div class="modal-content">
+            <h2 class="modal-title" id="logout-title">ログアウトしますか？</h2>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeLogoutModal()" data-modal-close>キャンセル</button>
+                <button type="button" class="btn btn-danger" onclick="logout()">ログアウト</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/stamp-rank.js"></script>
+    <script src="../js/mypage.js?v=4"></script>
+    <!-- 獲得したスタンプをDBから読み込んで表示する -->
+    <script type="module">
+        import { loadStampBook } from "../js/stamp-db.js?v=4";
+
+        loadStampBook().then(function (book) {
+            renderRecord(book.stamps || [], book.stamps === null ? "guest" : "ready", book.summary);
+        }, function (error) {
+            console.error("スタンプの読み込みに失敗しました:", error);
+            renderRecord([], "error");
+        });
+
+        // ニックネームはDBの内容を正とする（別の端末で変えた時も反映される）
+        import { loadUserName, saveUserName } from "../js/profile-db.js";
+        import { getLoginUserId } from "../js/stamp-db.js?v=4";
+
+        const userId = getLoginUserId();
+        if (userId) {
+            window.saveNicknameToDb = function (name) {
+                return saveUserName(userId, name);
+            };
+            loadUserName(userId).then(function (name) {
+                if (name) applyNickname(name);
+            }, function (error) {
+                console.error("ニックネームの読み込みに失敗しました:", error);
+            });
+        }
+    </script>
+</body>
+</html>
