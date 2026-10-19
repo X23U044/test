@@ -2022,10 +2022,98 @@ window.toggleView =
 // =========================================================
 // 現在地ボタン
 // =========================================================
-window.moveToCurrentLocation =
-    function () {
-        geolocate.trigger();
-    };
+// =========================================================
+// 現在地ボタン
+// =========================================================
+window.moveToCurrentLocation = function () {
+    const button = document.getElementById("location-btn");
+
+    // HTTPSで開かれているか確認
+    if (!window.isSecureContext) {
+        alert("現在地を取得するにはHTTPSで開いてください。");
+        return;
+    }
+
+    // ブラウザが位置情報に対応しているか確認
+    if (!navigator.geolocation) {
+        alert("このブラウザでは位置情報を利用できません。");
+        return;
+    }
+
+    // 取得中はボタンを一時的に無効化
+    if (button) {
+        button.disabled = true;
+    }
+
+    // 現在地を直接取得
+    navigator.geolocation.getCurrentPosition(
+        function (position) {
+            const longitude = position.coords.longitude;
+            const latitude = position.coords.latitude;
+
+            console.log("現在地取得成功:", {
+                latitude: latitude,
+                longitude: longitude,
+                accuracy: position.coords.accuracy
+            });
+
+            // 地図を現在地へ移動
+            map.flyTo({
+                center: [longitude, latitude],
+                zoom: Math.max(map.getZoom(), 15),
+                duration: 1000,
+                essential: true
+            });
+
+            if (button) {
+                button.disabled = false;
+            }
+        },
+
+        function (error) {
+            let message;
+
+            switch (error.code) {
+                case 1:
+                    message =
+                        "位置情報が許可されていません。SafariとiPhoneの設定を確認してください。";
+                    break;
+
+                case 2:
+                    message =
+                        "現在地を取得できません。位置情報サービスや通信状況を確認してください。";
+                    break;
+
+                case 3:
+                    message =
+                        "現在地の取得がタイムアウトしました。もう一度お試しください。";
+                    break;
+
+                default:
+                    message =
+                        "現在地の取得に失敗しました。";
+                    break;
+            }
+
+            console.error("現在地取得エラー:", {
+                code: error.code,
+                message: error.message
+            });
+
+            alert(message);
+
+            if (button) {
+                button.disabled = false;
+            }
+        },
+
+        {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 30000
+        }
+    );
+};
 
 
 // =========================================================
